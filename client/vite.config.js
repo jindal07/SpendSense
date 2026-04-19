@@ -21,6 +21,23 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          recharts: ['recharts'],
+          radix: [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-label',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+            '@radix-ui/react-slot',
+          ],
+          query: ['@tanstack/react-query'],
+        },
+      },
+    },
+  },
   plugins: [
     react(),
     VitePWA({
