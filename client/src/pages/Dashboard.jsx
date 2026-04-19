@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { Wallet, TrendingUp, PlusCircle, Calendar } from 'lucide-react';
 
@@ -7,9 +8,12 @@ import { TransactionItem } from '@/components/TransactionItem';
 import { EmptyState } from '@/components/EmptyState';
 import { ErrorState } from '@/components/ErrorState';
 import { ChartCard } from '@/components/ChartCard';
+import { ChartErrorBoundary } from '@/components/ChartErrorBoundary';
 import { useStats } from '@/hooks/useStats';
 import { useRecentTransactions } from '@/hooks/useTransactions';
 import { formatCurrency } from '@/lib/format';
+
+const EMPTY_ARRAY = Object.freeze([]);
 
 export default function Dashboard({ onAdd }) {
   const stats = useStats();
@@ -102,7 +106,11 @@ function TotalHero({ isLoading, error, total, onRetry, topCategory }) {
 }
 
 function CategoryBreakdownCard({ stats }) {
-  const data = stats.data?.byCategory ?? [];
+  const data = useMemo(
+    () => stats.data?.byCategory ?? EMPTY_ARRAY,
+    [stats.data?.byCategory]
+  );
+  const topFive = useMemo(() => data.slice(0, 5), [data]);
   const isEmpty = !stats.isLoading && data.length === 0;
 
   return (
@@ -116,33 +124,36 @@ function CategoryBreakdownCard({ stats }) {
       ) : (
         <div className="flex flex-col xs:flex-row xs:items-center gap-4">
           <div className="h-40 sm:h-44 w-full xs:w-[160px] sm:w-[180px] shrink-0">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  dataKey="total"
-                  nameKey="category"
-                  innerRadius="55%"
-                  outerRadius="95%"
-                  paddingAngle={3}
-                  strokeWidth={0}
-                >
-                  {data.map((entry) => (
-                    <Cell key={entry.category} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  contentStyle={tooltipStyle}
-                  itemStyle={tooltipItemStyle}
-                  labelStyle={tooltipLabelStyle}
-                  wrapperStyle={{ outline: 'none', zIndex: 50 }}
-                  formatter={(v) => formatCurrency(v)}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <ChartErrorBoundary>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={data}
+                    dataKey="total"
+                    nameKey="category"
+                    innerRadius="55%"
+                    outerRadius="95%"
+                    paddingAngle={3}
+                    strokeWidth={0}
+                    isAnimationActive={false}
+                  >
+                    {data.map((entry) => (
+                      <Cell key={entry.category} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={tooltipStyle}
+                    itemStyle={tooltipItemStyle}
+                    labelStyle={tooltipLabelStyle}
+                    wrapperStyle={{ outline: 'none', zIndex: 50 }}
+                    formatter={(v) => formatCurrency(v)}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </ChartErrorBoundary>
           </div>
           <ul className="flex-1 space-y-2 text-sm min-w-0">
-            {data.slice(0, 5).map((entry) => (
+            {topFive.map((entry) => (
               <li
                 key={entry.category}
                 className="flex items-center gap-2 justify-between"

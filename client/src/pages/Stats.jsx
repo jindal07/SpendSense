@@ -19,9 +19,12 @@ import { ChartCard } from '@/components/ChartCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ErrorState } from '@/components/ErrorState';
 import { EmptyState } from '@/components/EmptyState';
+import { ChartErrorBoundary } from '@/components/ChartErrorBoundary';
 import { useStats } from '@/hooks/useStats';
 import { formatCurrency, formatCompactCurrency, monthLabel } from '@/lib/format';
 import { cn } from '@/lib/utils';
+
+const EMPTY_ARRAY = Object.freeze([]);
 
 const RANGES = [
   { id: 'month', label: 'This month' },
@@ -109,7 +112,10 @@ export default function Stats() {
 }
 
 function PieBreakdown({ stats }) {
-  const data = stats.data?.byCategory ?? [];
+  const data = useMemo(
+    () => stats.data?.byCategory ?? EMPTY_ARRAY,
+    [stats.data?.byCategory]
+  );
   return (
     <ChartCard title="Category distribution" subtitle="Share of total spend">
       {stats.isLoading ? (
@@ -118,35 +124,38 @@ function PieBreakdown({ stats }) {
         <EmptyMini label="No categories" />
       ) : (
         <div className="h-56">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={data}
-                dataKey="total"
-                nameKey="category"
-                innerRadius={50}
-                outerRadius={85}
-                paddingAngle={2}
-                strokeWidth={0}
-              >
-                {data.map((entry) => (
-                  <Cell key={entry.category} fill={entry.color} />
-                ))}
-              </Pie>
-              <Legend
-                iconType="circle"
-                iconSize={8}
-                wrapperStyle={{ fontSize: 12, paddingTop: 4 }}
-              />
-              <Tooltip
-                contentStyle={tooltipStyle}
-                itemStyle={tooltipItemStyle}
-                labelStyle={tooltipLabelStyle}
-                wrapperStyle={tooltipWrapperStyle}
-                formatter={(v) => formatCurrency(v)}
-              />
-            </PieChart>
-          </ResponsiveContainer>
+          <ChartErrorBoundary>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  dataKey="total"
+                  nameKey="category"
+                  innerRadius={50}
+                  outerRadius={85}
+                  paddingAngle={2}
+                  strokeWidth={0}
+                  isAnimationActive={false}
+                >
+                  {data.map((entry) => (
+                    <Cell key={entry.category} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Legend
+                  iconType="circle"
+                  iconSize={8}
+                  wrapperStyle={{ fontSize: 12, paddingTop: 4 }}
+                />
+                <Tooltip
+                  contentStyle={tooltipStyle}
+                  itemStyle={tooltipItemStyle}
+                  labelStyle={tooltipLabelStyle}
+                  wrapperStyle={tooltipWrapperStyle}
+                  formatter={(v) => formatCurrency(v)}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </ChartErrorBoundary>
         </div>
       )}
     </ChartCard>
@@ -154,10 +163,14 @@ function PieBreakdown({ stats }) {
 }
 
 function MonthlyBars({ stats }) {
-  const data = (stats.data?.monthlyTotals ?? []).map((row) => ({
-    label: monthLabel(row.month),
-    total: row.total,
-  }));
+  const data = useMemo(
+    () =>
+      (stats.data?.monthlyTotals ?? EMPTY_ARRAY).map((row) => ({
+        label: monthLabel(row.month),
+        total: row.total,
+      })),
+    [stats.data?.monthlyTotals]
+  );
   return (
     <ChartCard title="Monthly totals" subtitle="Last 6 months">
       {stats.isLoading ? (
@@ -166,6 +179,7 @@ function MonthlyBars({ stats }) {
         <EmptyMini label="Not enough data" />
       ) : (
         <div className="h-56">
+          <ChartErrorBoundary>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
               <defs>
@@ -191,9 +205,10 @@ function MonthlyBars({ stats }) {
                 wrapperStyle={tooltipWrapperStyle}
                 formatter={(v) => formatCurrency(v)}
               />
-              <Bar dataKey="total" fill="url(#barFill)" radius={[10, 10, 0, 0]} />
+              <Bar dataKey="total" fill="url(#barFill)" radius={[10, 10, 0, 0]} isAnimationActive={false} />
             </BarChart>
           </ResponsiveContainer>
+          </ChartErrorBoundary>
         </div>
       )}
     </ChartCard>
@@ -201,14 +216,17 @@ function MonthlyBars({ stats }) {
 }
 
 function DailyTrendLine({ stats }) {
-  const raw = stats.data?.dailyTrend ?? [];
-  const data = raw.map((row) => ({
-    label: new Date(row.date).toLocaleDateString(undefined, {
-      day: 'numeric',
-      month: 'short',
-    }),
-    total: row.total,
-  }));
+  const data = useMemo(
+    () =>
+      (stats.data?.dailyTrend ?? EMPTY_ARRAY).map((row) => ({
+        label: new Date(row.date).toLocaleDateString(undefined, {
+          day: 'numeric',
+          month: 'short',
+        }),
+        total: row.total,
+      })),
+    [stats.data?.dailyTrend]
+  );
   return (
     <ChartCard title="Daily trend" subtitle="Spend over time">
       {stats.isLoading ? (
@@ -217,6 +235,7 @@ function DailyTrendLine({ stats }) {
         <EmptyMini label="No activity" />
       ) : (
         <div className="h-56">
+          <ChartErrorBoundary>
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={data} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
               <defs>
@@ -248,9 +267,11 @@ function DailyTrendLine({ stats }) {
                 strokeWidth={3}
                 dot={{ r: 3, fill: '#a857a7', strokeWidth: 0 }}
                 activeDot={{ r: 6, fill: '#d12e49' }}
+                isAnimationActive={false}
               />
             </LineChart>
           </ResponsiveContainer>
+          </ChartErrorBoundary>
         </div>
       )}
     </ChartCard>
