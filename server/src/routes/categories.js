@@ -1,14 +1,16 @@
 import { Router } from 'express';
-import prisma from '../lib/prisma.js';
+import { sql } from '../lib/db.js';
 import { createCategorySchema } from '../lib/validators.js';
 
 const router = Router();
 
 router.get('/', async (_req, res, next) => {
   try {
-    const items = await prisma.category.findMany({
-      orderBy: { createdAt: 'asc' },
-    });
+    const items = await sql`
+      SELECT id, name, color, "createdAt"
+      FROM "Category"
+      ORDER BY "createdAt" ASC
+    `;
     res.json({ items });
   } catch (err) {
     next(err);
@@ -21,11 +23,18 @@ router.post('/', async (req, res, next) => {
     if (!parsed.success) {
       return res.status(400).json({ error: parsed.error.flatten() });
     }
+    const { name, color } = parsed.data;
+
     try {
-      const created = await prisma.category.create({ data: parsed.data });
-      res.status(201).json(created);
+      const rows = await sql`
+        INSERT INTO "Category" (name, color)
+        VALUES (${name}, ${color})
+        RETURNING id, name, color, "createdAt"
+      `;
+      res.status(201).json(rows[0]);
     } catch (err) {
-      if (err?.code === 'P2002') {
+      // Postgres unique violation
+      if (err?.code === '23505') {
         return res.status(409).json({ error: 'Category already exists' });
       }
       throw err;

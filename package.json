@@ -2,7 +2,7 @@
   "name": "spendsense",
   "private": true,
   "version": "1.0.0",
-  "description": "SpendSense — a minimal, modern expense tracker PWA (React + Express + Prisma + Neon Postgres) with INR support.",
+  "description": "SpendSense — a minimal, modern expense tracker PWA (React + Express + Neon Postgres) with INR support.",
   "workspaces": [
     "client",
     "server"
@@ -11,18 +11,11 @@
     "dev": "concurrently -n server,client -c magenta,cyan \"npm:dev:server\" \"npm:dev:client\"",
     "dev:client": "npm --workspace client run dev",
     "dev:server": "npm --workspace server run dev",
-    "build": "npm --workspace server run build && npm --workspace client run build",
+    "build": "npm --workspace client run build",
     "build:client": "npm --workspace client run build",
-    "build:server": "npm --workspace server run build",
-    "prisma:generate": "npm --workspace server run prisma:generate",
-    "prisma:migrate": "npm --workspace server run prisma:migrate",
-    "prisma:migrate:dev": "npm --workspace server run prisma:migrate:dev",
-    "prisma:migrate:init": "npm --workspace server run prisma:migrate:init",
-    "prisma:push": "npm --workspace server run prisma:push",
-    "prisma:studio": "npm --workspace server run prisma:studio",
+    "db:init": "npm --workspace server run db:init",
     "db:seed": "npm --workspace server run seed",
-    "vercel-build": "npm --workspace server run build && npm --workspace client run build",
-    "postinstall": "npm --workspace server exec prisma generate"
+    "vercel-build": "npm --workspace client run build"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"
