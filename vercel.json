@@ -6,10 +6,11 @@
   "installCommand": "npm install",
   "functions": {
     "api/index.js": {
-      "maxDuration": 10,
+      "maxDuration": 30,
       "memory": 512
     }
   },
+  "regions": ["bom1"],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/((?!api).*)", "destination": "/index.html" }
