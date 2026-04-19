@@ -10,7 +10,7 @@
       "memory": 512
     }
   },
-  "regions": ["bom1"],
+  "regions": ["iad1"],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/((?!api).*)", "destination": "/index.html" }
