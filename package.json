@@ -21,7 +21,8 @@
     "prisma:push": "npm --workspace server run prisma:push",
     "prisma:studio": "npm --workspace server run prisma:studio",
     "db:seed": "npm --workspace server run seed",
-    "vercel-build": "npm --workspace server run build && npm --workspace client run build"
+    "vercel-build": "npm --workspace server run build && npm --workspace client run build",
+    "postinstall": "npm --workspace server exec prisma generate"
   },
   "devDependencies": {
     "concurrently": "^9.0.1"

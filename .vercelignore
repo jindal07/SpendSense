@@ -1,0 +1,6 @@
+req.md
+README.md
+.env.example
+.vscode
+.idea
+*.log
