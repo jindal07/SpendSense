@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Offline — SpendSense</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #040023;
+        --fg: #faeaed;
+        --muted: #cb9aca;
+        --card: #060132;
+        --pink: #d12e49;
+        --lilac: #a857a7;
+        --indigo: #4c35fd;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+      }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(800px 500px at 20% -10%, rgba(76, 53, 253, 0.3), transparent 60%),
+          radial-gradient(700px 500px at 110% 10%, rgba(209, 46, 73, 0.22), transparent 60%),
+          var(--bg);
+        color: var(--fg);
+        font-family: 'Exo 2', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        text-align: center;
+      }
+      .card {
+        background: rgba(6, 1, 50, 0.65);
+        backdrop-filter: saturate(180%) blur(18px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 24px;
+        padding: 32px 28px;
+        max-width: 380px;
+        box-shadow: 0 10px 40px -10px rgba(2, 0, 35, 0.7);
+      }
+      .dot {
+        height: 64px;
+        width: 64px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, var(--pink), var(--lilac), var(--indigo));
+        color: #fff;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 16px;
+        font-size: 32px;
+        font-weight: 700;
+        box-shadow: 0 10px 40px -10px rgba(76, 53, 253, 0.6);
+      }
+      h1 {
+        margin: 0 0 8px;
+        font-size: 22px;
+        font-weight: 700;
+      }
+      .brand {
+        background: linear-gradient(135deg, var(--pink), var(--lilac), var(--indigo));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+      }
+      p {
+        margin: 0 0 20px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.55;
+      }
+      button {
+        appearance: none;
+        background: linear-gradient(135deg, var(--pink), var(--lilac), var(--indigo));
+        color: #fff;
+        border: 0;
+        font-weight: 600;
+        font-size: 14px;
+        padding: 12px 22px;
+        border-radius: 16px;
+        cursor: pointer;
+        transition: transform 0.15s ease, filter 0.15s ease;
+        box-shadow: 0 10px 40px -12px rgba(76, 53, 253, 0.55);
+      }
+      button:hover {
+        filter: brightness(1.08);
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="dot">₹</div>
+      <h1>You're offline</h1>
+      <p>
+        <span class="brand">SpendSense</span> can't reach the network right now.
+        Your cached data is still available — once you're back online,
+        everything will sync automatically.
+      </p>
+      <button onclick="location.reload()">Try again</button>
+    </div>
+  </body>
+</html>
