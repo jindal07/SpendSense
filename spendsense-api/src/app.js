@@ -32,6 +32,15 @@ app.use(cors({
 // Body parsing
 app.use(express.json());
 
+// Root route
+app.get('/', (_req, res) => {
+  res.json({
+    service: 'SpendSense API',
+    status: 'running',
+    docs: '/api/health',
+  });
+});
+
 // API Routes
 app.use('/api/health', healthRoutes);
 app.use('/api/categories', categoryRoutes);
