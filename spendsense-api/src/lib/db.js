@@ -12,7 +12,7 @@ export function getDb() {
     if (!process.env.DATABASE_URL) {
       throw new Error('DATABASE_URL environment variable is not set');
     }
-    sql = neon(process.env.DATABASE_URL);
+    sql = neon(process.env.DATABASE_URL, { fetchConnectionCache: true });
   }
   return sql;
 }
