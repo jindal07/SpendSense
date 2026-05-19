@@ -7,7 +7,14 @@ const router = Router();
 router.get('/', async (_req, res, next) => {
   try {
     const sql = getDb();
-    const rows = await sql`SELECT * FROM categories ORDER BY "createdAt" ASC`;
+    const rows = await sql`
+      SELECT id, name, color
+      FROM categories
+      ORDER BY name ASC
+    `;
+    // Categories change rarely — let the browser/CDN cache for 5 minutes
+    // with a longer stale-while-revalidate window for smoother navigation.
+    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=86400');
     res.json({ items: rows });
   } catch (err) {
     next(err);
@@ -36,7 +43,7 @@ router.post('/', async (req, res, next) => {
     const rows = await sql`
       INSERT INTO categories (name, color)
       VALUES (${name.trim()}, ${color})
-      RETURNING *
+      RETURNING id, name, color
     `;
 
     res.status(201).json(rows[0]);

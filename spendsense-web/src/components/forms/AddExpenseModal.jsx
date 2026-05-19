@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -41,6 +42,22 @@ export default function AddExpenseModal({ open, onOpenChange }) {
   });
 
   const selectedCategory = watch('category');
+
+  const categoryItems = useMemo(
+    () =>
+      categories.map((c) => (
+        <SelectItem key={c.id} value={c.name}>
+          <span className="flex items-center gap-2">
+            <span
+              className="h-2.5 w-2.5 rounded-full"
+              style={{ backgroundColor: c.color }}
+            />
+            {c.name}
+          </span>
+        </SelectItem>
+      )),
+    [categories]
+  );
 
   const onSubmit = async (data) => {
     const category =
@@ -94,19 +111,7 @@ export default function AddExpenseModal({ open, onOpenChange }) {
                   <SelectTrigger id="expense-category">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
-                  <SelectContent>
-                    {categories.map((c) => (
-                      <SelectItem key={c.id} value={c.name}>
-                        <span className="flex items-center gap-2">
-                          <span
-                            className="h-2.5 w-2.5 rounded-full"
-                            style={{ backgroundColor: c.color }}
-                          />
-                          {c.name}
-                        </span>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
+                  <SelectContent>{categoryItems}</SelectContent>
                 </Select>
               )}
             />

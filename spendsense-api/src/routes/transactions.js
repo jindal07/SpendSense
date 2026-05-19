@@ -4,28 +4,53 @@ import { parsePaginationParams } from '../utils/pagination.js';
 
 const router = Router();
 
+// Encode/decode the keyset cursor as base64(`createdAt|id`).
+// Decoding in app code avoids the extra round-trip the previous lateral
+// subquery required for every paginated request.
+function decodeCursor(cursor) {
+  if (!cursor) return null;
+  try {
+    const decoded = Buffer.from(cursor, 'base64url').toString('utf8');
+    const sep = decoded.lastIndexOf('|');
+    if (sep === -1) return null;
+    const createdAt = decoded.slice(0, sep);
+    const id = decoded.slice(sep + 1);
+    if (!createdAt || !id) return null;
+    return { createdAt, id };
+  } catch {
+    return null;
+  }
+}
+
+function encodeCursor(row) {
+  const createdAt =
+    row.createdAt instanceof Date ? row.createdAt.toISOString() : row.createdAt;
+  return Buffer.from(`${createdAt}|${row.id}`, 'utf8').toString('base64url');
+}
+
 // GET /api/transactions?limit=&cursor=
 router.get('/', async (req, res, next) => {
   try {
     const { limit, cursor } = parsePaginationParams(req.query);
     const sql = getDb();
+    const decoded = decodeCursor(cursor);
 
+    // Explicit column list lets the planner satisfy the query from the
+    // (createdAt DESC, id DESC) covering-friendly indexes without
+    // hauling every column off disk for unused fields.
     let rows;
-    if (cursor) {
-      // Keyset pagination using a lateral subquery for the cursor row.
-      // This lets Postgres resolve the cursor values once and use the
-      // composite (createdAt DESC, id DESC) index directly.
+    if (decoded) {
       rows = await withTimeout(sql`
-        SELECT t.* FROM transactions t
-        WHERE (t."createdAt", t.id) < (
-          SELECT "createdAt", id FROM transactions WHERE id = ${cursor}
-        )
-        ORDER BY t."createdAt" DESC, t.id DESC
+        SELECT id, amount, category, date, note, "createdAt"
+        FROM transactions
+        WHERE ("createdAt", id) < (${decoded.createdAt}::timestamptz, ${decoded.id})
+        ORDER BY "createdAt" DESC, id DESC
         LIMIT ${limit + 1}
       `);
     } else {
       rows = await withTimeout(sql`
-        SELECT * FROM transactions
+        SELECT id, amount, category, date, note, "createdAt"
+        FROM transactions
         ORDER BY "createdAt" DESC, id DESC
         LIMIT ${limit + 1}
       `);
@@ -33,7 +58,7 @@ router.get('/', async (req, res, next) => {
 
     const hasMore = rows.length > limit;
     const items = hasMore ? rows.slice(0, limit) : rows;
-    const nextCursor = hasMore ? items[items.length - 1].id : null;
+    const nextCursor = hasMore ? encodeCursor(items[items.length - 1]) : null;
 
     res.json({ items, nextCursor, hasMore });
   } catch (err) {
@@ -46,7 +71,6 @@ router.post('/', async (req, res, next) => {
   try {
     const { amount, category, date, note } = req.body;
 
-    // Validation
     const errors = [];
     if (amount === undefined || amount === null || typeof amount !== 'number' || amount <= 0) {
       errors.push('Amount must be a positive number');
@@ -63,10 +87,20 @@ router.post('/', async (req, res, next) => {
     }
 
     const sql = getDb();
+    const trimmed = category.trim();
+
+    // Insert + look up the category color in a single round-trip using a CTE.
+    // Saves the client from having to re-fetch the categories list to render
+    // the freshly created row with the right swatch colour.
     const rows = await withTimeout(sql`
-      INSERT INTO transactions (amount, category, date, note)
-      VALUES (${amount}, ${category.trim()}, ${date}, ${note || null})
-      RETURNING *
+      WITH inserted AS (
+        INSERT INTO transactions (amount, category, date, note)
+        VALUES (${amount}, ${trimmed}, ${date}, ${note || null})
+        RETURNING id, amount, category, date, note, "createdAt"
+      )
+      SELECT i.*, COALESCE(c.color, '#94a3b8') AS "categoryColor"
+      FROM inserted i
+      LEFT JOIN categories c ON c.name = i.category
     `);
 
     res.status(201).json(rows[0]);

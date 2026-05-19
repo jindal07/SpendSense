@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingDown, Wallet, ArrowDownRight, Tag } from 'lucide-react';
 import Header from '@/components/layout/Header';
@@ -13,7 +14,18 @@ export default function Dashboard() {
   const { data: txData, isLoading: txLoading } = useTransactions(5);
   const { data: stats, isLoading: statsLoading } = useStats();
 
-  const transactions = txData?.pages?.flatMap((p) => p.items) ?? [];
+  const transactions = useMemo(
+    () => txData?.pages?.flatMap((p) => p.items) ?? [],
+    [txData]
+  );
+
+  // Quick-stat aggregates. Previously the dashboard reduced the same
+  // per-category counts three times per render — once for every card.
+  // Now the API also returns a top-level `count`, so we just use it.
+  const txCount =
+    stats?.count ?? stats?.byCategory?.reduce((s, c) => s + c.count, 0) ?? 0;
+  const avgPerTxn = txCount > 0 ? (stats?.total ?? 0) / txCount : 0;
+  const topCategory = stats?.byCategory?.[0]?.category ?? '—';
 
   return (
     <>
@@ -44,31 +56,17 @@ export default function Dashboard() {
           <QuickStat
             icon={<ArrowDownRight className="h-4 w-4 text-red-400" />}
             label="Expenses"
-            value={
-              statsLoading
-                ? null
-                : `${stats?.byCategory?.reduce((s, c) => s + c.count, 0) ?? 0}`
-            }
+            value={statsLoading ? null : `${txCount}`}
           />
           <QuickStat
             icon={<Wallet className="h-4 w-4 text-indigo-400" />}
             label="Avg / txn"
-            value={
-              statsLoading
-                ? null
-                : formatCurrency(
-                    stats?.byCategory?.reduce((s, c) => s + c.count, 0)
-                      ? stats.total / stats.byCategory.reduce((s, c) => s + c.count, 0)
-                      : 0
-                  )
-            }
+            value={statsLoading ? null : formatCurrency(avgPerTxn)}
           />
           <QuickStat
             icon={<Tag className="h-4 w-4 text-emerald-400" />}
             label="Top Cat."
-            value={
-              statsLoading ? null : stats?.byCategory?.[0]?.category ?? '—'
-            }
+            value={statsLoading ? null : topCategory}
           />
         </div>
 
