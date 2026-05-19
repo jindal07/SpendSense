@@ -1,8 +1,9 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/utils/format';
 import { useDeleteTransaction } from '@/hooks/useTransactions';
+import ConfirmDialog from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 
 // Map category names to emoji icons
@@ -22,11 +23,20 @@ const STAGGER_STEP = 0.04;
 
 function TransactionCard({ transaction, index = 0 }) {
   const deleteTx = useDeleteTransaction();
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
-  const handleDelete = (e) => {
+  const openConfirm = (e) => {
     e.stopPropagation();
-    if (window.confirm('Delete this expense?')) {
-      deleteTx.mutate(transaction.id);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    try {
+      await deleteTx.mutateAsync(transaction.id);
+      setConfirmOpen(false);
+    } catch {
+      // Error toast is already raised by the mutation; keep the dialog open
+      // so the user can see what happened and retry.
     }
   };
 
@@ -69,7 +79,7 @@ function TransactionCard({ transaction, index = 0 }) {
 
       {/* Delete */}
       <button
-        onClick={handleDelete}
+        onClick={openConfirm}
         disabled={deleteTx.isPending || transaction._optimistic}
         className={cn(
           'flex-shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-red-400',
@@ -79,6 +89,30 @@ function TransactionCard({ transaction, index = 0 }) {
       >
         <Trash2 className="h-4 w-4" />
       </button>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Delete this expense?"
+        description={
+          <>
+            <span className="font-medium text-foreground">
+              {transaction.category}
+            </span>{' '}
+            ·{' '}
+            <span className="font-semibold text-red-400">
+              -{formatCurrency(transaction.amount)}
+            </span>
+            <br />
+            This action can&apos;t be undone.
+          </>
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="destructive"
+        loading={deleteTx.isPending}
+        onConfirm={handleConfirmDelete}
+      />
     </motion.div>
   );
 }
