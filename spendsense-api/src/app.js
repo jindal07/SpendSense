@@ -51,12 +51,11 @@ app.use('/api/stats', statsRoutes);
 app.use(notFound);
 app.use(errorHandler);
 
-// Local dev server (not used in serverless)
+// Start server — Render/Railway/local dev all need this.
+// Vercel uses api/index.js with serverless-http instead (never reaches here).
 const PORT = process.env.PORT || 3001;
-if (process.env.NODE_ENV !== 'production') {
-  app.listen(PORT, () => {
-    console.log(`🚀 SpendSense API running on http://localhost:${PORT}`);
-  });
-}
+app.listen(PORT, () => {
+  console.log(`🚀 SpendSense API running on port ${PORT}`);
+});
 
 export default app;
