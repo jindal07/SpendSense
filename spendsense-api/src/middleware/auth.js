@@ -2,6 +2,7 @@ import { getDb, withTimeout } from '../lib/db.js';
 import {
   getSessionTokenFromRequest,
   hashToken,
+  usesCrossSiteCookies,
 } from '../lib/session.js';
 import { getAllowedOrigins } from '../lib/corsOrigins.js';
 
@@ -40,7 +41,7 @@ export function requireSameOrigin(req, res, next) {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
     return next();
   }
-  if (process.env.COOKIE_CROSS_SITE !== 'true') {
+  if (!usesCrossSiteCookies()) {
     return next();
   }
 

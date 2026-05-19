@@ -4,6 +4,17 @@ import { serialize, parse } from 'cookie';
 export const SESSION_COOKIE_NAME = 'session';
 export const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
+/**
+ * Cross-site credentialed fetches (e.g. web.vercel.app → api.vercel.app) require
+ * SameSite=None; Secure. Local dev keeps Lax (same-site localhost).
+ * Override with COOKIE_CROSS_SITE=true|false.
+ */
+export function usesCrossSiteCookies() {
+  if (process.env.COOKIE_CROSS_SITE === 'true') return true;
+  if (process.env.COOKIE_CROSS_SITE === 'false') return false;
+  return process.env.NODE_ENV === 'production';
+}
+
 export function createSessionToken() {
   return crypto.randomBytes(32).toString('base64url');
 }
@@ -18,11 +29,10 @@ export function parseCookies(cookieHeader) {
 }
 
 export function cookieOptions() {
-  const crossSite = process.env.COOKIE_CROSS_SITE === 'true';
-  const isProd = process.env.NODE_ENV === 'production';
+  const crossSite = usesCrossSiteCookies();
   return {
     httpOnly: true,
-    secure: isProd || crossSite,
+    secure: crossSite || process.env.NODE_ENV === 'production',
     sameSite: crossSite ? 'none' : 'lax',
     path: '/',
     maxAge: SESSION_TTL_MS / 1000,
