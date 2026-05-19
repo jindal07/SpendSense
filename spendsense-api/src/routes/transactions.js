@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { getDb } from '../lib/db.js';
+import { getDb, withTimeout } from '../lib/db.js';
 import { parsePaginationParams } from '../utils/pagination.js';
 
 const router = Router();
@@ -12,21 +12,23 @@ router.get('/', async (req, res, next) => {
 
     let rows;
     if (cursor) {
-      // Keyset pagination — fetch items older than the cursor row
-      rows = await sql`
-        SELECT * FROM transactions
-        WHERE ("createdAt", id) < (
+      // Keyset pagination using a lateral subquery for the cursor row.
+      // This lets Postgres resolve the cursor values once and use the
+      // composite (createdAt DESC, id DESC) index directly.
+      rows = await withTimeout(sql`
+        SELECT t.* FROM transactions t
+        WHERE (t."createdAt", t.id) < (
           SELECT "createdAt", id FROM transactions WHERE id = ${cursor}
         )
-        ORDER BY "createdAt" DESC, id DESC
+        ORDER BY t."createdAt" DESC, t.id DESC
         LIMIT ${limit + 1}
-      `;
+      `);
     } else {
-      rows = await sql`
+      rows = await withTimeout(sql`
         SELECT * FROM transactions
         ORDER BY "createdAt" DESC, id DESC
         LIMIT ${limit + 1}
-      `;
+      `);
     }
 
     const hasMore = rows.length > limit;
@@ -61,11 +63,11 @@ router.post('/', async (req, res, next) => {
     }
 
     const sql = getDb();
-    const rows = await sql`
+    const rows = await withTimeout(sql`
       INSERT INTO transactions (amount, category, date, note)
       VALUES (${amount}, ${category.trim()}, ${date}, ${note || null})
       RETURNING *
-    `;
+    `);
 
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -79,9 +81,9 @@ router.delete('/:id', async (req, res, next) => {
     const { id } = req.params;
     const sql = getDb();
 
-    const rows = await sql`
+    const rows = await withTimeout(sql`
       DELETE FROM transactions WHERE id = ${id} RETURNING id
-    `;
+    `);
 
     if (rows.length === 0) {
       return res.status(404).json({

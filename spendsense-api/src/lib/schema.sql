@@ -28,3 +28,7 @@ CREATE INDEX IF NOT EXISTS idx_categories_name         ON categories (name);
 
 -- Keyset pagination optimization (composite index for cursor-based queries)
 CREATE INDEX IF NOT EXISTS idx_transactions_pagination ON transactions ("createdAt" DESC, id DESC);
+
+-- Covering index for stats aggregations — enables index-only scans
+-- on the date-filtered queries that group by category and sum amount
+CREATE INDEX IF NOT EXISTS idx_transactions_stats ON transactions (date, category, amount);
