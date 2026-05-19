@@ -6,19 +6,61 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 async function request(path, options = {}) {
   const url = `${BASE_URL}${path}`;
   const res = await fetch(url, {
+    credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
   });
 
+  if (
+    res.status === 401 &&
+    !path.startsWith('/api/auth/') &&
+    path !== '/api/me'
+  ) {
+    window.dispatchEvent(new Event('auth:unauthorized'));
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    const err = new Error(body.message || body.error || `Request failed (${res.status})`);
+    const message =
+      body.message ||
+      (Array.isArray(body.messages) ? body.messages.join(', ') : null) ||
+      body.error ||
+      `Request failed (${res.status})`;
+    const err = new Error(message);
     err.status = res.status;
     err.body = body;
     throw err;
   }
 
   return res.json();
+}
+
+// ——— Auth ———
+
+export function fetchMe() {
+  return request('/api/me');
+}
+
+export function signup(data) {
+  return request('/api/auth/signup', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function login(data) {
+  return request('/api/auth/login', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+}
+
+export function logout() {
+  return request('/api/auth/logout', { method: 'POST' });
+}
+
+export function logoutAll() {
+  return request('/api/auth/logout-all', { method: 'POST' });
 }
 
 // ——— Categories ———

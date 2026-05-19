@@ -7,10 +7,13 @@
     "dev": "nodemon src/app.js",
     "start": "node src/app.js",
     "db:init": "node src/init-db.js",
+    "db:reset": "node src/reset-db.js",
     "db:seed": "node src/seed.js"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
+    "bcryptjs": "^3.0.3",
+    "cookie": "^1.1.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

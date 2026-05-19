@@ -8,29 +8,21 @@ router.get('/', async (req, res, next) => {
   try {
     const sql = getDb();
     const { from, to } = req.query;
+    const userId = req.userId;
 
-    // Default to current month if not specified
     const now = new Date();
     const fromDate = from || new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
     const toDate =
       to ||
       new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString();
 
-    // Single round-trip:
-    //   * `filtered` is materialised once and re-used for the total,
-    //     per-category, and daily aggregations.
-    //   * The covering index (date, category, amount) lets Postgres
-    //     answer all three from index-only scans.
-    //   * Daily / monthly buckets use `date_trunc` so they remain
-    //     sargable and return real DATE values instead of strings.
-    //   * `total_cte` now also returns `count` so the client no longer
-    //     has to reduce per-category counts to display the total.
     const rows = await withTimeout(sql`
       WITH
         filtered AS (
           SELECT amount, category, date
           FROM transactions
-          WHERE date >= ${fromDate}::timestamptz
+          WHERE user_id = ${userId}
+            AND date >= ${fromDate}::timestamptz
             AND date <= ${toDate}::timestamptz
         ),
         total_cte AS (
@@ -48,7 +40,8 @@ router.get('/', async (req, res, next) => {
               SUM(f.amount)::float8            AS total,
               COUNT(*)::int                    AS count
             FROM filtered f
-            LEFT JOIN categories c ON c.name = f.category
+            LEFT JOIN categories c
+              ON c.name = f.category AND c.user_id = ${userId}
             GROUP BY f.category, c.color
           ) sub
         ),
@@ -69,7 +62,8 @@ router.get('/', async (req, res, next) => {
               TO_CHAR(date_trunc('month', date), 'YYYY-MM') AS month,
               SUM(amount)::float8                           AS total
             FROM transactions
-            WHERE date >= NOW() - INTERVAL '6 months'
+            WHERE user_id = ${userId}
+              AND date >= NOW() - INTERVAL '6 months'
             GROUP BY date_trunc('month', date)
           ) sub
         )

@@ -4,17 +4,16 @@ import { getDb } from '../lib/db.js';
 const router = Router();
 
 // GET /api/categories
-router.get('/', async (_req, res, next) => {
+router.get('/', async (req, res, next) => {
   try {
     const sql = getDb();
     const rows = await sql`
       SELECT id, name, color
       FROM categories
+      WHERE user_id = ${req.userId}
       ORDER BY name ASC
     `;
-    // Categories change rarely — let the browser/CDN cache for 5 minutes
-    // with a longer stale-while-revalidate window for smoother navigation.
-    res.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=86400');
+    res.set('Cache-Control', 'private, no-cache');
     res.json({ items: rows });
   } catch (err) {
     next(err);
@@ -41,8 +40,8 @@ router.post('/', async (req, res, next) => {
 
     const sql = getDb();
     const rows = await sql`
-      INSERT INTO categories (name, color)
-      VALUES (${name.trim()}, ${color})
+      INSERT INTO categories (user_id, name, color)
+      VALUES (${req.userId}, ${name.trim()}, ${color})
       RETURNING id, name, color
     `;
 

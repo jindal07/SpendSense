@@ -2,37 +2,37 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import healthRoutes from './routes/health.js';
+import authRoutes from './routes/auth.js';
+import meRoutes from './routes/me.js';
 import categoryRoutes from './routes/categories.js';
 import transactionRoutes from './routes/transactions.js';
 import statsRoutes from './routes/stats.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { requireAuth, requireSameOrigin } from './middleware/auth.js';
+import { getAllowedOrigins } from './lib/corsOrigins.js';
 
 const app = express();
 
-// CORS configuration — supports comma-separated origins in CORS_ORIGIN
-const allowedOrigins = process.env.CORS_ORIGIN
-  ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
-  : ['*'];
+const allowedOrigins = getAllowedOrigins();
 
-app.use(cors({
-  origin: (origin, cb) => {
-    // Allow requests with no origin (mobile apps, Postman, server-to-server)
-    if (!origin) return cb(null, true);
-    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
-      return cb(null, true);
-    }
-    return cb(new Error('Not allowed by CORS'));
-  },
-  methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type'],
-  credentials: true,
-}));
+app.set('trust proxy', 1);
 
-// Body parsing
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error('Not allowed by CORS'));
+    },
+    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type'],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
-// Root route
 app.get('/', (_req, res) => {
   res.json({
     service: 'SpendSense API',
@@ -41,18 +41,21 @@ app.get('/', (_req, res) => {
   });
 });
 
-// API Routes
+// Public routes
 app.use('/api/health', healthRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/transactions', transactionRoutes);
-app.use('/api/stats', statsRoutes);
+app.use('/api/auth', authRoutes);
 
-// Error handling
+// Protected routes (session cookie required)
+const protectedMiddleware = [requireAuth, requireSameOrigin];
+
+app.use('/api/me', ...protectedMiddleware, meRoutes);
+app.use('/api/categories', ...protectedMiddleware, categoryRoutes);
+app.use('/api/transactions', ...protectedMiddleware, transactionRoutes);
+app.use('/api/stats', ...protectedMiddleware, statsRoutes);
+
 app.use(notFound);
 app.use(errorHandler);
 
-// Start server — Render/Railway/local dev all need this.
-// Vercel uses api/index.js with serverless-http instead (never reaches here).
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`🚀 SpendSense API running on port ${PORT}`);

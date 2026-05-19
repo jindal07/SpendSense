@@ -1,34 +1,10 @@
+/**
+ * @deprecated Categories are seeded per-user on signup (see routes/auth.js).
+ * Use `npm run db:reset` to apply the multi-tenant schema, then sign up via the app.
+ */
 import 'dotenv/config';
-import { getDb } from './lib/db.js';
 
-const DEFAULT_CATEGORIES = [
-  { name: 'Food',          color: '#fb923c' },
-  { name: 'Travel',        color: '#60a5fa' },
-  { name: 'Bills',         color: '#f87171' },
-  { name: 'Shopping',      color: '#c084fc' },
-  { name: 'Health',        color: '#34d399' },
-  { name: 'Entertainment', color: '#fbbf24' },
-  { name: 'Other',         color: '#94a3b8' },
-];
-
-async function seed() {
-  console.log('🌱 Seeding categories...\n');
-
-  const sql = getDb();
-
-  for (const cat of DEFAULT_CATEGORIES) {
-    await sql`
-      INSERT INTO categories (name, color)
-      VALUES (${cat.name}, ${cat.color})
-      ON CONFLICT (name) DO UPDATE SET color = ${cat.color}
-    `;
-    console.log(`  ✅ ${cat.name}  ${cat.color}`);
-  }
-
-  console.log('\n✅ Seeding complete!');
-}
-
-seed().catch((err) => {
-  console.error('❌ Failed to seed database:', err);
-  process.exit(1);
-});
+console.log(
+  'ℹ️  db:seed is no longer used — categories are created automatically when a user signs up.\n' +
+    '   Run `npm run db:reset` to reset the schema, then create an account in the app.'
+);
