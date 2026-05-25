@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect, useState, useCallback } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { Sparkles, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { useCategories } from '@/hooks/useCategories';
 import { useCreateTransaction } from '@/hooks/useTransactions';
-import { Loader2 } from 'lucide-react';
+import { useAiKey } from '@/hooks/useAiKey';
+import { suggestCategory } from '@/api/ai';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 const schema = z.object({
   amount: z.coerce.number().positive('Amount must be greater than 0'),
@@ -19,9 +23,12 @@ const schema = z.object({
   note: z.string().optional(),
 });
 
-export default function AddExpenseModal({ open, onOpenChange }) {
+export default function AddExpenseModal({ open, onOpenChange, prefill }) {
   const { data: categories = [] } = useCategories();
   const createTx = useCreateTransaction();
+  const { hasKey } = useAiKey();
+  const [suggesting, setSuggesting] = useState(false);
+  const [aiSuggestedCat, setAiSuggestedCat] = useState(false);
 
   const {
     register,
@@ -29,6 +36,7 @@ export default function AddExpenseModal({ open, onOpenChange }) {
     control,
     watch,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(schema),
@@ -42,6 +50,29 @@ export default function AddExpenseModal({ open, onOpenChange }) {
   });
 
   const selectedCategory = watch('category');
+  const noteValue = watch('note');
+
+  useEffect(() => {
+    if (open && prefill) {
+      reset({
+        amount: prefill.amount ?? '',
+        category: prefill.category ?? '',
+        customCategory: '',
+        date: prefill.date ?? new Date().toISOString().split('T')[0],
+        note: prefill.note ?? '',
+      });
+      setAiSuggestedCat(!!prefill.category);
+    } else if (open && !prefill) {
+      reset({
+        amount: '',
+        category: '',
+        customCategory: '',
+        date: new Date().toISOString().split('T')[0],
+        note: '',
+      });
+      setAiSuggestedCat(false);
+    }
+  }, [open, prefill, reset]);
 
   const categoryItems = useMemo(
     () =>
@@ -49,7 +80,7 @@ export default function AddExpenseModal({ open, onOpenChange }) {
         <SelectItem key={c.id} value={c.name}>
           <span className="flex items-center gap-2">
             <span
-              className="h-2.5 w-2.5 rounded-full"
+              className="h-2 w-2 rounded-full flex-shrink-0"
               style={{ backgroundColor: c.color }}
             />
             {c.name}
@@ -58,6 +89,34 @@ export default function AddExpenseModal({ open, onOpenChange }) {
       )),
     [categories]
   );
+
+  const runSuggest = useCallback(
+    async (note) => {
+      if (!hasKey || !note?.trim() || note.trim().length < 3) return;
+      setSuggesting(true);
+      try {
+        const r = await suggestCategory({ note: note.trim() });
+        if (r.confidence > 0.5 && r.category) {
+          setValue('category', r.category);
+          setAiSuggestedCat(true);
+          toast.success(`AI suggested: ${r.category}`, { duration: 2000 });
+        }
+      } catch (e) {
+        if (e.status !== 412) toast.error(e.message || 'Suggestion failed');
+      } finally {
+        setSuggesting(false);
+      }
+    },
+    [hasKey, setValue]
+  );
+
+  useEffect(() => {
+    if (!open || !hasKey || selectedCategory) return undefined;
+    const t = setTimeout(() => {
+      if (noteValue?.trim().length >= 4) runSuggest(noteValue);
+    }, 700);
+    return () => clearTimeout(t);
+  }, [noteValue, open, hasKey, selectedCategory, runSuggest]);
 
   const onSubmit = async (data) => {
     const category =
@@ -70,9 +129,11 @@ export default function AddExpenseModal({ open, onOpenChange }) {
       category,
       date: new Date(data.date).toISOString(),
       note: data.note || null,
+      source: prefill?.source || (aiSuggestedCat ? 'ai_suggest' : 'manual'),
     });
 
     reset();
+    setAiSuggestedCat(false);
     onOpenChange(false);
   };
 
@@ -84,9 +145,8 @@ export default function AddExpenseModal({ open, onOpenChange }) {
           <DialogDescription>Track a new expense entry.</DialogDescription>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-2">
-          {/* Amount */}
-          <div className="space-y-1.5">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="space-y-2">
             <Label htmlFor="expense-amount">Amount (₹)</Label>
             <Input
               id="expense-amount"
@@ -96,18 +156,52 @@ export default function AddExpenseModal({ open, onOpenChange }) {
               {...register('amount', { valueAsNumber: true })}
             />
             {errors.amount && (
-              <p className="text-xs text-red-400">{errors.amount.message}</p>
+              <p className="text-xs text-destructive">{errors.amount.message}</p>
             )}
           </div>
 
-          {/* Category */}
-          <div className="space-y-1.5">
-            <Label htmlFor="expense-category">Category</Label>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <Label htmlFor="expense-category" className="flex items-center gap-1.5">
+                Category
+                {aiSuggestedCat && (
+                  <span className="inline-flex items-center gap-1 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                    <Sparkles className="h-2.5 w-2.5" />
+                    AI
+                  </span>
+                )}
+              </Label>
+              {hasKey && (
+                <button
+                  type="button"
+                  onClick={() => runSuggest(noteValue)}
+                  disabled={suggesting || !noteValue?.trim()}
+                  className={cn(
+                    'flex h-8 w-8 items-center justify-center rounded-lg transition-all',
+                    'text-primary hover:bg-primary/10 disabled:opacity-30'
+                  )}
+                  aria-label="Suggest category from note"
+                  title="Suggest category"
+                >
+                  {suggesting ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3.5 w-3.5" />
+                  )}
+                </button>
+              )}
+            </div>
             <Controller
               name="category"
               control={control}
               render={({ field }) => (
-                <Select onValueChange={field.onChange} value={field.value}>
+                <Select
+                  onValueChange={(v) => {
+                    field.onChange(v);
+                    setAiSuggestedCat(false);
+                  }}
+                  value={field.value}
+                >
                   <SelectTrigger id="expense-category">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
@@ -116,13 +210,12 @@ export default function AddExpenseModal({ open, onOpenChange }) {
               )}
             />
             {errors.category && (
-              <p className="text-xs text-red-400">{errors.category.message}</p>
+              <p className="text-xs text-destructive">{errors.category.message}</p>
             )}
           </div>
 
-          {/* Custom category when "Other" is selected */}
           {selectedCategory === 'Other' && (
-            <div className="space-y-1.5 animate-slide-up">
+            <div className="space-y-2 animate-slide-up">
               <Label htmlFor="expense-custom-cat">Custom Category</Label>
               <Input
                 id="expense-custom-cat"
@@ -132,31 +225,24 @@ export default function AddExpenseModal({ open, onOpenChange }) {
             </div>
           )}
 
-          {/* Date */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <Label htmlFor="expense-date">Date</Label>
             <Input id="expense-date" type="date" {...register('date')} />
             {errors.date && (
-              <p className="text-xs text-red-400">{errors.date.message}</p>
+              <p className="text-xs text-destructive">{errors.date.message}</p>
             )}
           </div>
 
-          {/* Note */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <Label htmlFor="expense-note">Note (optional)</Label>
-            <Input id="expense-note" placeholder="Add a note..." {...register('note')} />
+            <Input id="expense-note" placeholder="e.g. Uber to airport" {...register('note')} />
           </div>
 
-          <Button
-            id="expense-submit-btn"
-            type="submit"
-            className="w-full"
-            disabled={createTx.isPending}
-          >
+          <Button type="submit" className="w-full" disabled={createTx.isPending}>
             {createTx.isPending ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Adding...
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Adding…
               </>
             ) : (
               'Add Expense'

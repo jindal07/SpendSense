@@ -4,9 +4,9 @@ import { formatCurrency, formatDateShort } from '@/utils/format';
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="glass-card px-3 py-2 text-xs">
+    <div className="rounded-lg border border-border/50 bg-card px-3 py-2 text-xs shadow-lg">
       <p className="font-medium">{formatDateShort(label)}</p>
-      <p className="text-indigo-400">{formatCurrency(payload[0].value)}</p>
+      <p className="text-primary mt-0.5">{formatCurrency(payload[0].value)}</p>
     </div>
   );
 };
@@ -21,29 +21,28 @@ export default function DailyBarChart({ data = [] }) {
   }));
 
   return (
-    <ResponsiveContainer width="100%" height={220}>
-      <BarChart data={chartData} margin={{ top: 5, right: 5, left: -20, bottom: 5 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="hsl(217 33% 17%)" vertical={false} />
+    <ResponsiveContainer width="100%" height={200}>
+      <BarChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 4 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="hsl(225 12% 12%)" vertical={false} />
         <XAxis
           dataKey="label"
-          tick={{ fill: 'hsl(215 20% 65%)', fontSize: 10 }}
+          tick={{ fill: 'hsl(215 12% 50%)', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
           interval="preserveStartEnd"
         />
         <YAxis
-          tick={{ fill: 'hsl(215 20% 65%)', fontSize: 10 }}
+          tick={{ fill: 'hsl(215 12% 50%)', fontSize: 10 }}
           axisLine={false}
           tickLine={false}
           tickFormatter={(v) => `₹${v >= 1000 ? `${(v / 1000).toFixed(0)}k` : v}`}
         />
-        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsla(239 84% 67% / 0.08)' }} />
-        <Bar dataKey="total" fill="url(#barGradient)" radius={[4, 4, 0, 0]} maxBarSize={32}>
-        </Bar>
+        <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(230 70% 62% / 0.06)' }} />
+        <Bar dataKey="total" fill="url(#barGradient)" radius={[6, 6, 0, 0]} maxBarSize={28} />
         <defs>
           <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#818cf8" />
-            <stop offset="100%" stopColor="#6366f1" />
+            <stop offset="0%" stopColor="hsl(230 70% 68%)" />
+            <stop offset="100%" stopColor="hsl(230 70% 55%)" />
           </linearGradient>
         </defs>
       </BarChart>

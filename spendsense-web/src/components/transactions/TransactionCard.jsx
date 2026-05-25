@@ -6,7 +6,6 @@ import { useDeleteTransaction } from '@/hooks/useTransactions';
 import ConfirmDialog from '@/components/ui/confirm-dialog';
 import { cn } from '@/lib/utils';
 
-// Map category names to emoji icons
 const CATEGORY_ICONS = {
   Food: '🍔',
   Travel: '✈️',
@@ -14,11 +13,14 @@ const CATEGORY_ICONS = {
   Shopping: '🛍️',
   Health: '💊',
   Entertainment: '🎬',
+  Education: '📚',
+  Groceries: '🛒',
+  Rent: '🏠',
+  Utilities: '💡',
   Other: '📌',
 };
 
-// Cap the per-item stagger so long lists don't take seconds to animate in.
-const MAX_STAGGER_DELAY = 0.32;
+const MAX_STAGGER_DELAY = 0.3;
 const STAGGER_STEP = 0.04;
 
 function TransactionCard({ transaction, index = 0 }) {
@@ -35,8 +37,7 @@ function TransactionCard({ transaction, index = 0 }) {
       await deleteTx.mutateAsync(transaction.id);
       setConfirmOpen(false);
     } catch {
-      // Error toast is already raised by the mutation; keep the dialog open
-      // so the user can see what happened and retry.
+      /* dialog stays open so user sees error */
     }
   };
 
@@ -45,49 +46,48 @@ function TransactionCard({ transaction, index = 0 }) {
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      transition={{ delay, duration: 0.25 }}
+      exit={{ opacity: 0, x: -40 }}
+      transition={{ delay, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        'glass-card flex items-center gap-3 p-3 transition-colors hover:border-primary/20',
-        transaction._optimistic && 'opacity-70'
+        'group flex items-center gap-3.5 rounded-xl p-3.5 transition-all duration-200',
+        'bg-secondary/30 hover:bg-secondary/50',
+        transaction._optimistic && 'opacity-50'
       )}
     >
-      {/* Category icon */}
-      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-secondary text-lg">
+      <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-secondary/80 text-base">
         {emoji}
       </div>
 
-      {/* Info */}
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium truncate">{transaction.category}</p>
-        <p className="text-xs text-muted-foreground truncate">
+        <p className="text-xs text-muted-foreground truncate mt-0.5">
           {transaction.note || formatRelativeTime(transaction.createdAt)}
         </p>
       </div>
 
-      {/* Amount */}
       <div className="text-right flex-shrink-0">
-        <p className="text-sm font-semibold text-red-400">
+        <p className="text-sm font-semibold tabular-nums text-destructive/90">
           -{formatCurrency(transaction.amount)}
         </p>
-        <p className="text-[10px] text-muted-foreground">
+        <p className="text-[10px] text-muted-foreground mt-0.5">
           {formatRelativeTime(transaction.createdAt)}
         </p>
       </div>
 
-      {/* Delete */}
       <button
         onClick={openConfirm}
         disabled={deleteTx.isPending || transaction._optimistic}
         className={cn(
-          'flex-shrink-0 rounded-lg p-2 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-red-400',
-          (deleteTx.isPending || transaction._optimistic) && 'opacity-50'
+          'flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/40 transition-all',
+          'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
+          'hover:bg-destructive/10 hover:text-destructive',
+          (deleteTx.isPending || transaction._optimistic) && 'opacity-30'
         )}
         aria-label="Delete expense"
       >
-        <Trash2 className="h-4 w-4" />
+        <Trash2 className="h-3.5 w-3.5" />
       </button>
 
       <ConfirmDialog
@@ -100,7 +100,7 @@ function TransactionCard({ transaction, index = 0 }) {
               {transaction.category}
             </span>{' '}
             ·{' '}
-            <span className="font-semibold text-red-400">
+            <span className="font-semibold text-destructive">
               -{formatCurrency(transaction.amount)}
             </span>
             <br />

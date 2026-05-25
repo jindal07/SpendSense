@@ -66,7 +66,12 @@ router.get('/', async (req, res, next) => {
 // POST /api/transactions
 router.post('/', async (req, res, next) => {
   try {
-    const { amount, category, date, note } = req.body;
+    const { amount, category, date, note, source } = req.body;
+    const txSource =
+      typeof source === 'string' &&
+      ['manual', 'ai_voice', 'ai_scan', 'ai_chat', 'ai_suggest'].includes(source)
+        ? source
+        : 'manual';
 
     const errors = [];
     if (amount === undefined || amount === null || typeof amount !== 'number' || amount <= 0) {
@@ -89,8 +94,8 @@ router.post('/', async (req, res, next) => {
 
     const rows = await withTimeout(sql`
       WITH inserted AS (
-        INSERT INTO transactions (user_id, amount, category, date, note)
-        VALUES (${userId}, ${amount}, ${trimmed}, ${date}, ${note || null})
+        INSERT INTO transactions (user_id, amount, category, date, note, source)
+        VALUES (${userId}, ${amount}, ${trimmed}, ${date}, ${note || null}, ${txSource})
         RETURNING id, amount, category, date, note, "createdAt"
       )
       SELECT i.*, COALESCE(c.color, '#94a3b8') AS "categoryColor"

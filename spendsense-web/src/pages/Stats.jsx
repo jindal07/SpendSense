@@ -9,29 +9,28 @@ import EmptyState from '@/components/transactions/EmptyState';
 import { useStats } from '@/hooks/useStats';
 import { formatCurrency } from '@/utils/format';
 
-const container = {
+const stagger = {
   hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.08 } },
 };
-const item = {
-  hidden: { opacity: 0, y: 15 },
-  show: { opacity: 1, y: 0 },
+const fadeUp = {
+  hidden: { opacity: 0, y: 12 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
 };
 
 export default function Stats() {
   const { data: stats, isLoading } = useStats();
-
   const hasData = stats && stats.total > 0;
 
   return (
     <>
       <Header title="Analytics" subtitle="Your spending insights" />
-      <PageContainer>
+      <PageContainer className="pt-6">
         {isLoading ? (
           <div className="space-y-4">
-            <Skeleton className="h-8 w-32" />
-            <Skeleton className="h-[220px] w-full rounded-xl" />
-            <Skeleton className="h-[220px] w-full rounded-xl" />
+            <Skeleton className="h-8 w-36" />
+            <Skeleton className="h-[200px] w-full rounded-xl" />
+            <Skeleton className="h-[200px] w-full rounded-xl" />
           </div>
         ) : !hasData ? (
           <EmptyState
@@ -39,48 +38,43 @@ export default function Stats() {
             subtitle="Add some expenses to see your analytics here."
           />
         ) : (
-          <motion.div variants={container} initial="hidden" animate="show" className="space-y-5">
-            {/* Total */}
-            <motion.div variants={item} className="glass-card p-4">
-              <p className="text-sm text-muted-foreground">Total Spending</p>
-              <p className="mt-1 text-2xl font-bold text-gradient">
+          <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5">
+            <motion.div variants={fadeUp} className="glass-card p-5">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Spending</p>
+              <p className="mt-2 text-3xl font-bold tracking-tight text-gradient">
                 {formatCurrency(stats.total)}
               </p>
             </motion.div>
 
-            {/* Category Pie */}
             {stats.byCategory?.length > 0 && (
-              <motion.section variants={item} className="glass-card p-4">
-                <h3 className="mb-3 text-sm font-semibold">By Category</h3>
+              <motion.section variants={fadeUp} className="glass-card p-5">
+                <h3 className="text-sm font-semibold text-foreground/90 mb-4">By Category</h3>
                 <CategoryPieChart data={stats.byCategory} />
-                {/* Category details */}
-                <div className="mt-4 space-y-2">
+                <div className="mt-5 space-y-2.5">
                   {stats.byCategory.map((c, i) => (
                     <div key={i} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: c.color }} />
-                        <span>{c.category}</span>
+                      <div className="flex items-center gap-2.5">
+                        <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: c.color }} />
+                        <span className="text-foreground/90">{c.category}</span>
                         <span className="text-xs text-muted-foreground">({c.count})</span>
                       </div>
-                      <span className="font-medium">{formatCurrency(Number(c.total))}</span>
+                      <span className="font-medium tabular-nums">{formatCurrency(Number(c.total))}</span>
                     </div>
                   ))}
                 </div>
               </motion.section>
             )}
 
-            {/* Daily Trend */}
             {stats.dailyTrend?.length > 0 && (
-              <motion.section variants={item} className="glass-card p-4">
-                <h3 className="mb-3 text-sm font-semibold">Daily Spending</h3>
+              <motion.section variants={fadeUp} className="glass-card p-5">
+                <h3 className="text-sm font-semibold text-foreground/90 mb-4">Daily Spending</h3>
                 <DailyBarChart data={stats.dailyTrend} />
               </motion.section>
             )}
 
-            {/* Monthly Trend */}
             {stats.monthlyTotals?.length > 0 && (
-              <motion.section variants={item} className="glass-card p-4">
-                <h3 className="mb-3 text-sm font-semibold">Monthly Trend</h3>
+              <motion.section variants={fadeUp} className="glass-card p-5">
+                <h3 className="text-sm font-semibold text-foreground/90 mb-4">Monthly Trend</h3>
                 <MonthlyLineChart data={stats.monthlyTotals} />
               </motion.section>
             )}

@@ -9,19 +9,6 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-/**
- * Modern confirmation dialog — replaces `window.confirm`.
- *
- * Props:
- *  - open / onOpenChange  : controlled state from the parent.
- *  - title / description  : copy shown to the user.
- *  - confirmLabel         : label for the destructive action (default "Confirm").
- *  - cancelLabel          : label for the cancel action  (default "Cancel").
- *  - variant              : "destructive" (default) | "default" — colours the
- *                            confirm button and the leading icon.
- *  - loading              : disables actions and shows a spinner on confirm.
- *  - onConfirm            : called when the user confirms.
- */
 export default function ConfirmDialog({
   open,
   onOpenChange,
@@ -48,13 +35,13 @@ export default function ConfirmDialog({
         onEscapeKeyDown={(e) => loading && e.preventDefault()}
       >
         <DialogHeader>
-          <div className="flex items-start gap-3">
+          <div className="flex items-start gap-3.5">
             <div
               className={cn(
-                'flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full',
+                'flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl',
                 isDestructive
-                  ? 'bg-destructive/15 text-destructive'
-                  : 'bg-primary/15 text-primary'
+                  ? 'bg-destructive/10 text-destructive'
+                  : 'bg-primary/10 text-primary'
               )}
             >
               <AlertTriangle className="h-5 w-5" />
@@ -62,7 +49,7 @@ export default function ConfirmDialog({
             <div className="flex-1 text-left">
               <DialogTitle className="text-base">{title}</DialogTitle>
               {description && (
-                <DialogDescription className="mt-1 text-sm">
+                <DialogDescription className="mt-1.5 text-sm leading-relaxed">
                   {description}
                 </DialogDescription>
               )}
@@ -70,7 +57,7 @@ export default function ConfirmDialog({
           </div>
         </DialogHeader>
 
-        <div className="mt-2 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+        <div className="mt-1 flex flex-col-reverse gap-2.5 sm:flex-row sm:justify-end">
           <Button
             type="button"
             variant="outline"
@@ -89,7 +76,7 @@ export default function ConfirmDialog({
           >
             {loading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin" />
                 Please wait
               </>
             ) : (

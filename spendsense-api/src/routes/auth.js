@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { Router } from 'express';
 import { getDb, withTimeout } from '../lib/db.js';
 import { hashPassword, verifyPassword } from '../lib/password.js';
@@ -57,7 +58,6 @@ router.post('/signup', requireSameOrigin, async (req, res, next) => {
     const userAgent = req.headers['user-agent'] ?? null;
     const ip = clientIp(req);
 
-    // Single statement: user + default categories + session (ACID)
     const rows = await withTimeout(sql`
       WITH new_user AS (
         INSERT INTO users (email, password_hash, name)
@@ -180,7 +180,6 @@ router.post('/login', requireSameOrigin, loginRateLimit, async (req, res, next) 
     });
   } catch (err) {
     if (isUniqueViolation(err)) {
-      // astronomically rare token_hash collision — regenerate once
       return res.status(500).json({
         error: 'Internal Server Error',
         message: 'Please try again',

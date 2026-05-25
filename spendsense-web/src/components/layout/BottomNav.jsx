@@ -1,11 +1,13 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, BarChart3, Plus } from 'lucide-react';
+import { Home, BarChart3, Plus, Camera, Mic, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
+import { useAiKey } from '@/hooks/useAiKey';
 
-export default function BottomNav({ onAdd }) {
+export default function BottomNav({ onAdd, onScan, onVoice, onChat }) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
+  const { hasKey } = useAiKey();
 
   const tabs = [
     { icon: Home, label: 'Home', path: '/' },
@@ -13,10 +15,9 @@ export default function BottomNav({ onAdd }) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40">
-      <div className="mx-auto max-w-lg">
-        <div className="glass-card mx-3 mb-3 flex items-center justify-around rounded-2xl px-2 py-2 pb-safe">
-          {/* Home tab */}
+    <nav className="fixed bottom-0 left-0 right-0 z-40 pb-safe">
+      <div className="mx-auto max-w-xl px-3 pb-2">
+        <div className="flex items-center justify-between rounded-2xl border border-border/40 bg-card/80 backdrop-blur-xl px-2 py-2 shadow-lg shadow-black/20">
           <NavTab
             icon={tabs[0].icon}
             label={tabs[0].label}
@@ -24,17 +25,21 @@ export default function BottomNav({ onAdd }) {
             onClick={() => navigate(tabs[0].path)}
           />
 
-          {/* FAB — Add Expense */}
-          <button
-            id="add-expense-fab"
-            onClick={onAdd}
-            className="relative -mt-8 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-lg shadow-indigo-500/30 transition-transform hover:scale-105 active:scale-95"
-            aria-label="Add expense"
-          >
-            <Plus className="h-7 w-7" />
-          </button>
+          <div className="flex items-center gap-0.5">
+            <AiAction icon={Camera} label="Scan" onClick={onScan} disabled={!hasKey} />
+            <AiAction icon={Mic} label="Voice" onClick={onVoice} disabled={!hasKey} />
 
-          {/* Stats tab */}
+            <button
+              onClick={onAdd}
+              className="relative mx-1 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md shadow-primary/25 transition-all duration-200 hover:shadow-lg hover:shadow-primary/30 active:scale-95"
+              aria-label="Add expense"
+            >
+              <Plus className="h-5 w-5" strokeWidth={2.5} />
+            </button>
+
+            <AiAction icon={MessageCircle} label="Coach" onClick={onChat} disabled={!hasKey} />
+          </div>
+
           <NavTab
             icon={tabs[1].icon}
             label={tabs[1].label}
@@ -52,7 +57,7 @@ function NavTab({ icon: Icon, label, active, onClick }) {
     <button
       onClick={onClick}
       className={cn(
-        'relative flex flex-col items-center gap-0.5 rounded-xl px-5 py-2 text-xs font-medium transition-colors',
+        'relative flex flex-col items-center gap-1 rounded-xl px-4 py-2 text-[10px] font-medium transition-colors min-h-[44px] min-w-[52px]',
         active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
       )}
       aria-label={label}
@@ -62,10 +67,30 @@ function NavTab({ icon: Icon, label, active, onClick }) {
       {active && (
         <motion.div
           layoutId="nav-indicator"
-          className="absolute -bottom-1 h-0.5 w-6 rounded-full bg-primary"
+          className="absolute -bottom-0.5 h-[3px] w-5 rounded-full bg-primary"
           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
         />
       )}
+    </button>
+  );
+}
+
+function AiAction({ icon: Icon, label, onClick, disabled }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className={cn(
+        'flex flex-col items-center justify-center rounded-xl px-1.5 py-1.5 min-h-[44px] min-w-[38px] text-[9px] font-medium transition-all',
+        disabled
+          ? 'opacity-25 cursor-not-allowed'
+          : 'text-muted-foreground hover:text-primary hover:bg-secondary/50 active:scale-95'
+      )}
+      aria-label={label}
+    >
+      <Icon className="h-4 w-4" />
+      <span className="mt-0.5">{label}</span>
     </button>
   );
 }

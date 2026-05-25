@@ -7,6 +7,7 @@ import meRoutes from './routes/me.js';
 import categoryRoutes from './routes/categories.js';
 import transactionRoutes from './routes/transactions.js';
 import statsRoutes from './routes/stats.js';
+import aiRoutes from './routes/ai.js';
 import { notFound } from './middleware/notFound.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import { requireAuth, requireSameOrigin } from './middleware/auth.js';
@@ -30,7 +31,7 @@ app.use(
       }
       return cb(new Error(`Not allowed by CORS: ${origin}`));
     },
-    methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type'],
     credentials: true,
   })
@@ -57,6 +58,7 @@ app.use('/api/me', ...protectedMiddleware, meRoutes);
 app.use('/api/categories', ...protectedMiddleware, categoryRoutes);
 app.use('/api/transactions', ...protectedMiddleware, transactionRoutes);
 app.use('/api/stats', ...protectedMiddleware, statsRoutes);
+app.use('/api/ai', ...protectedMiddleware, aiRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

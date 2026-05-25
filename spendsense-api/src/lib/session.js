@@ -56,28 +56,3 @@ export function clearSessionCookie(res) {
 export function getSessionTokenFromRequest(req) {
   return parseCookies(req.headers.cookie)?.[SESSION_COOKIE_NAME];
 }
-
-export async function createSessionRow(sql, userId, req) {
-  const token = createSessionToken();
-  const tokenHash = hashToken(token);
-  const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
-  const userAgent = req.headers['user-agent'] ?? null;
-  const forwarded = req.headers['x-forwarded-for'];
-  const ip =
-    req.ip ||
-    (typeof forwarded === 'string' ? forwarded.split(',')[0].trim() : null) ||
-    null;
-
-  await sql`
-    INSERT INTO sessions (user_id, token_hash, expires_at, user_agent, ip)
-    VALUES (
-      ${userId},
-      ${tokenHash},
-      ${expiresAt}::timestamptz,
-      ${userAgent},
-      ${ip}
-    )
-  `;
-
-  return token;
-}

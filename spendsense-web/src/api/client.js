@@ -3,11 +3,14 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 /**
  * Reusable fetch wrapper with centralised error handling.
  */
-async function request(path, options = {}) {
+export async function request(path, options = {}) {
   const url = `${BASE_URL}${path}`;
+  const isFormData = options.body instanceof FormData;
   const res = await fetch(url, {
     credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...options.headers },
+    headers: isFormData
+      ? { ...options.headers }
+      : { 'Content-Type': 'application/json', ...options.headers },
     ...options,
   });
 

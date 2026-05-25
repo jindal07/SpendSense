@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { History, LogOut, User } from 'lucide-react';
+import { History, LogOut, Settings, User } from 'lucide-react';
 import { useAuth } from '@/auth/AuthContext';
 import { cn } from '@/lib/utils';
 
@@ -22,70 +22,82 @@ export default function Header({ title, subtitle }) {
   };
 
   return (
-    <header className="relative flex items-center justify-between px-4 pt-6 pb-2">
-      <div>
-        <h1 className="text-xl font-bold tracking-tight">{title}</h1>
-        {subtitle && (
-          <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
-        )}
-      </div>
+    <header className="sticky top-0 z-30 border-b border-border/40 bg-background/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-xl items-center justify-between px-4 sm:px-6 py-4">
+        <div>
+          <h1 className="text-lg font-semibold tracking-tight">{title}</h1>
+          {subtitle && (
+            <p className="text-xs text-muted-foreground mt-0.5">{subtitle}</p>
+          )}
+        </div>
 
-      <div className="flex items-center gap-2">
-        <button
-          id="header-history-btn"
-          onClick={() => navigate('/history')}
-          className="flex items-center gap-1.5 rounded-lg bg-secondary px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="View history"
-        >
-          <History className="h-4 w-4" />
-          History
-        </button>
-
-        <div className="relative">
+        <div className="flex items-center gap-1.5">
           <button
-            type="button"
-            onClick={() => setMenuOpen((o) => !o)}
-            className="flex h-9 w-9 items-center justify-center rounded-lg bg-secondary text-muted-foreground transition-colors hover:text-foreground"
-            aria-label="Account menu"
-            aria-expanded={menuOpen}
+            onClick={() => navigate('/history')}
+            className="flex h-9 items-center gap-1.5 rounded-xl bg-secondary/50 px-3 text-xs font-medium text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
+            aria-label="View history"
           >
-            <User className="h-4 w-4" />
+            <History className="h-3.5 w-3.5" />
+            History
           </button>
 
-          {menuOpen && (
-            <>
-              <button
-                type="button"
-                className="fixed inset-0 z-40 cursor-default"
-                aria-label="Close menu"
-                onClick={() => setMenuOpen(false)}
-              />
-              <div
-                className={cn(
-                  'absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-lg border border-border',
-                  'bg-popover text-popover-foreground shadow-2xl ring-1 ring-black/40'
-                )}
-              >
-                <div className="border-b border-border px-3 py-2.5">
-                  <p className="truncate text-xs font-medium text-foreground">
-                    {user?.name || 'Account'}
-                  </p>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {user?.email}
-                  </p>
-                </div>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMenuOpen((o) => !o)}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-secondary/50 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground"
+              aria-label="Account menu"
+              aria-expanded={menuOpen}
+            >
+              <User className="h-4 w-4" />
+            </button>
+
+            {menuOpen && (
+              <>
                 <button
                   type="button"
-                  onClick={handleLogout}
-                  disabled={loggingOut}
-                  className="flex w-full items-center gap-2 px-3 py-2.5 text-sm text-red-400 transition-colors hover:bg-destructive/10 disabled:opacity-50"
-                >
-                  <LogOut className="h-4 w-4" />
-                  {loggingOut ? 'Signing out…' : 'Sign out'}
-                </button>
-              </div>
-            </>
-          )}
+                  className="fixed inset-0 z-40 cursor-default"
+                  aria-label="Close menu"
+                  onClick={() => setMenuOpen(false)}
+                />
+                <div className="absolute right-0 top-full z-50 mt-1.5 w-56 overflow-hidden rounded-xl border border-border/50 bg-card shadow-2xl shadow-black/30 animate-scale-in">
+                  <div className="border-b border-border/40 px-3.5 py-3">
+                    <p className="truncate text-sm font-medium">
+                      {user?.name || 'Account'}
+                    </p>
+                    <p className="truncate text-xs text-muted-foreground mt-0.5">
+                      {user?.email}
+                    </p>
+                  </div>
+                  <div className="p-1.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMenuOpen(false);
+                        navigate('/settings');
+                      }}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-secondary/60"
+                    >
+                      <Settings className="h-4 w-4 text-muted-foreground" />
+                      Settings
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleLogout}
+                      disabled={loggingOut}
+                      className={cn(
+                        'flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 text-sm transition-colors hover:bg-destructive/10',
+                        'text-destructive disabled:opacity-40'
+                      )}
+                    >
+                      <LogOut className="h-4 w-4" />
+                      {loggingOut ? 'Signing out…' : 'Sign out'}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </header>

@@ -33,9 +33,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             position="top-center"
             toastOptions={{
               style: {
-                background: 'hsl(222 47% 8%)',
-                border: '1px solid hsl(217 33% 20%)',
-                color: 'hsl(210 40% 98%)',
+                background: 'hsl(225 15% 9%)',
+                border: '1px solid hsl(225 12% 16%)',
+                color: 'hsl(210 20% 96%)',
                 fontFamily: "'Exo 2', system-ui, sans-serif",
               },
             }}
