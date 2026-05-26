@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { recordAiConsent } from '@/api/ai';
 import { Shield } from 'lucide-react';
 import { toast } from 'sonner';
+import { friendlyError } from '@/utils/friendlyError';
 
 export default function AiConsentDialog({ open, onOpenChange, onAccepted }) {
   const handleAccept = async () => {
@@ -17,7 +18,7 @@ export default function AiConsentDialog({ open, onOpenChange, onAccepted }) {
       onAccepted?.();
       onOpenChange(false);
     } catch (e) {
-      toast.error(e?.message || 'Failed to save consent');
+      toast.error(friendlyError(e));
     }
   };
 

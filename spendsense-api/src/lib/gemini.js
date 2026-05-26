@@ -250,6 +250,32 @@ export function normalizeGeminiError(err) {
     });
   }
 
+  if (
+    status === 503 ||
+    raw.includes('UNAVAILABLE') ||
+    raw.includes('high demand') ||
+    raw.includes('overloaded')
+  ) {
+    return Object.assign(
+      new Error('The AI model is temporarily unavailable due to high demand. Please try again in a minute.'),
+      { status: 503, code: 'GEMINI_UNAVAILABLE' }
+    );
+  }
+
+  if (status === 500 || raw.includes('INTERNAL')) {
+    return Object.assign(
+      new Error('The AI service encountered an internal error. Please try again.'),
+      { status: 502, code: 'GEMINI_INTERNAL' }
+    );
+  }
+
+  if (status === 404 || raw.includes('not found') || raw.includes('NOT_FOUND')) {
+    return Object.assign(
+      new Error('The AI model is not available. Your API key may not have access to this model.'),
+      { status: 400, code: 'GEMINI_MODEL_NOT_FOUND' }
+    );
+  }
+
   if (status === 400) {
     return Object.assign(
       new Error('Gemini rejected this request. Check your API key and model access.'),

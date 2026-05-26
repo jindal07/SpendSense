@@ -9,6 +9,7 @@ import {
   deleteTransaction,
 } from '@/api/client';
 import { toast } from 'sonner';
+import { friendlyError } from '@/utils/friendlyError';
 
 const TX_PREFIX = ['transactions'];
 const STATS_KEY = ['stats'];
@@ -35,7 +36,7 @@ export function useCreateTransaction() {
       toast.success('Expense added');
     },
     onError: (err) => {
-      toast.error(err.message || 'Failed to add expense');
+      toast.error(friendlyError(err));
     },
   });
 }

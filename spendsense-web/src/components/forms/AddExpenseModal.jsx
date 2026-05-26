@@ -13,6 +13,7 @@ import { useCreateTransaction } from '@/hooks/useTransactions';
 import { useAiKey } from '@/hooks/useAiKey';
 import { suggestCategory } from '@/api/ai';
 import { toast } from 'sonner';
+import { friendlyError } from '@/utils/friendlyError';
 import { cn } from '@/lib/utils';
 
 const schema = z.object({
@@ -102,7 +103,7 @@ export default function AddExpenseModal({ open, onOpenChange, prefill }) {
           toast.success(`AI suggested: ${r.category}`, { duration: 2000 });
         }
       } catch (e) {
-        if (e.status !== 412) toast.error(e.message || 'Suggestion failed');
+        if (e.status !== 412) toast.error(friendlyError(e));
       } finally {
         setSuggesting(false);
       }

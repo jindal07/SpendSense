@@ -6,6 +6,7 @@ import {
   generateJson,
   generateVisionJson,
   invokeGemini,
+  getGeminiForUser,
   AiKeyMissingError,
   invalidateKeyCache,
   withTimeout,
@@ -688,6 +689,34 @@ Rules:
       status: 'ok',
       latencyMs: Date.now() - chatStart,
     });
+
+    try {
+      const sugResult = await withTimeout(
+        (await getGeminiForUser(req.userId)).models.generateContent({
+          model,
+          contents: [
+            ...contents.slice(0, 4),
+            { role: 'user', parts: [{ text: message }] },
+            { role: 'model', parts: [{ text: finalText }] },
+            {
+              role: 'user',
+              parts: [{
+                text: `Based on the conversation above, suggest exactly 3 short follow-up questions the user might want to ask next about their finances. Return ONLY a JSON array of strings, nothing else. Each question must be under 60 characters.`,
+              }],
+            },
+          ],
+          config: { responseMimeType: 'application/json', maxOutputTokens: 150 },
+        }),
+        8_000
+      );
+      const sugText = sugResult.text?.trim() ?? '';
+      const parsed = JSON.parse(sugText.match(/\[[\s\S]*\]/)?.[0] ?? '[]');
+      if (Array.isArray(parsed) && parsed.length) {
+        send('suggestions', { suggestions: parsed.slice(0, 3).map(String) });
+      }
+    } catch {
+      // follow-ups are best-effort; don't fail the chat
+    }
 
     send('done', {});
     res.end();

@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { fetchAiKey, saveAiKey, deleteAiKey, fetchAiUsage, patchSettings } from '@/api/ai';
 import { fetchMe } from '@/api/client';
 import { toast } from 'sonner';
+import { friendlyError } from '@/utils/friendlyError';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -54,7 +55,7 @@ export default function Settings() {
       qc.invalidateQueries({ queryKey: ['ai-key'] });
       toast.success(`Key saved (…${r.fingerprint})`);
     } catch (e) {
-      toast.error(e.message || 'Invalid key');
+      toast.error(friendlyError(e));
     } finally {
       setSavingKey(false);
     }
@@ -67,7 +68,7 @@ export default function Settings() {
       qc.invalidateQueries({ queryKey: ['ai-key'] });
       toast.success('API key removed');
     } catch (e) {
-      toast.error(e.message || 'Failed to remove key');
+      toast.error(friendlyError(e));
     }
   };
 
@@ -81,7 +82,7 @@ export default function Settings() {
       qc.invalidateQueries({ queryKey: ['me-profile'] });
       toast.success('Profile updated');
     } catch (e) {
-      toast.error(e.message);
+      toast.error(friendlyError(e));
     }
   };
 

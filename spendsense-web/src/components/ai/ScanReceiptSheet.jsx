@@ -18,6 +18,7 @@ import { useAiKey } from '@/hooks/useAiKey';
 import AiUnavailable from './AiUnavailable';
 import { prepareReceiptFile } from '@/utils/imagePrep';
 import { toast } from 'sonner';
+import { friendlyError } from '@/utils/friendlyError';
 
 export default function ScanReceiptSheet({ open, onOpenChange }) {
   const { hasKey } = useAiKey();
@@ -64,7 +65,7 @@ export default function ScanReceiptSheet({ open, onOpenChange }) {
       });
       setStep('confirm');
     } catch (e) {
-      toast.error(e.message || 'Scan failed');
+      toast.error(friendlyError(e));
       setStep('pick');
     } finally {
       setScanning(false);

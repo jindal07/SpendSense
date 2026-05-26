@@ -8,6 +8,7 @@ import { useAuth } from '@/auth/AuthContext';
 import AiConsentDialog from './AiConsentDialog';
 import AiUnavailable from './AiUnavailable';
 import { cn } from '@/lib/utils';
+import { friendlyError } from '@/utils/friendlyError';
 
 const PROMPTS = [
   'How am I doing this month?',
@@ -23,6 +24,7 @@ export default function ChatPanel({ open, onOpenChange }) {
   const [streaming, setStreaming] = useState(false);
   const [conversationId, setConversationId] = useState(null);
   const [showConsent, setShowConsent] = useState(false);
+  const [followUps, setFollowUps] = useState([]);
   const abortRef = useRef(null);
   const bottomRef = useRef(null);
 
@@ -57,6 +59,7 @@ export default function ChatPanel({ open, onOpenChange }) {
     setMessages((m) => [...m, { role: 'user', text: msg }]);
     setInput('');
     setStreaming(true);
+    setFollowUps([]);
 
     setMessages((m) => [...m, { role: 'assistant', text: '' }]);
 
@@ -82,8 +85,12 @@ export default function ChatPanel({ open, onOpenChange }) {
               return copy;
             });
           }
+          if (event === 'suggestions' && Array.isArray(data.suggestions)) {
+            setFollowUps(data.suggestions.slice(0, 3));
+          }
           if (event === 'error') {
-            let text = data.message || 'Something went wrong. Please try again.';
+            const errObj = { message: data.message, status: data.status, code: data.code };
+            let text = friendlyError(errObj);
             if (data.retryAfter) {
               text += ` You can retry in about ${data.retryAfter} seconds.`;
             }
@@ -102,7 +109,7 @@ export default function ChatPanel({ open, onOpenChange }) {
           return copy;
         });
       } else {
-        showChatError(e.message || 'Chat failed. Please try again.');
+        showChatError(friendlyError(e));
       }
     } finally {
       setStreaming(false);
@@ -210,6 +217,27 @@ export default function ChatPanel({ open, onOpenChange }) {
                     </motion.div>
                   ))
                 )}
+
+                {!streaming && followUps.length > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: 0.1 }}
+                    className="flex flex-wrap gap-2 pt-1"
+                  >
+                    {followUps.map((q) => (
+                      <button
+                        key={q}
+                        type="button"
+                        onClick={() => sendMessage(q)}
+                        className="rounded-full border border-primary/25 bg-primary/5 px-3 py-1.5 text-xs font-medium text-primary transition-all hover:bg-primary/15 hover:border-primary/40 active:scale-95"
+                      >
+                        {q}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+
                 <div ref={bottomRef} />
               </div>
 

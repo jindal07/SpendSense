@@ -40,6 +40,24 @@ export function errorHandler(err, req, res, _next) {
     });
   }
 
+  if (err.status === 503 || err.code === 'GEMINI_UNAVAILABLE') {
+    logRequestError(req, err, 503);
+    return res.status(503).json({
+      error: 'Service Unavailable',
+      code: 'GEMINI_UNAVAILABLE',
+      message: err.message || 'The AI model is temporarily unavailable. Please try again in a minute.',
+    });
+  }
+
+  if (err.status === 502 || err.code === 'GEMINI_INTERNAL') {
+    logRequestError(req, err, 502);
+    return res.status(502).json({
+      error: 'Bad Gateway',
+      code: 'GEMINI_INTERNAL',
+      message: err.message || 'The AI service encountered an error. Please try again.',
+    });
+  }
+
   const status = err.status || 500;
   const isProd = process.env.NODE_ENV === 'production';
 
@@ -48,7 +66,7 @@ export function errorHandler(err, req, res, _next) {
   res.status(status).json({
     error: err.name || 'Internal Server Error',
     message: isProd && status >= 500
-      ? 'An internal error occurred'
+      ? 'Something went wrong. Please try again.'
       : (err.message || 'Unknown error'),
     ...(err.messages && { messages: err.messages }),
   });

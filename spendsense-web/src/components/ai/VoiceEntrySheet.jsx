@@ -14,6 +14,7 @@ import { parseExpense, parseExpenseAudio } from '@/api/ai';
 import { useAiKey } from '@/hooks/useAiKey';
 import AiUnavailable from './AiUnavailable';
 import { toast } from 'sonner';
+import { friendlyError } from '@/utils/friendlyError';
 
 const getSpeechRecognition = () => {
   if (typeof window === 'undefined') return null;
@@ -173,7 +174,7 @@ export default function VoiceEntrySheet({ open, onOpenChange, onParsed }) {
           onParsed?.(r);
           onOpenChange(false);
         } catch (e) {
-          toast.error(e.message || 'Failed to parse audio');
+          toast.error(friendlyError(e));
         } finally {
           setParsing(false);
         }
@@ -228,7 +229,7 @@ export default function VoiceEntrySheet({ open, onOpenChange, onParsed }) {
       }
       onOpenChange(false);
     } catch (e) {
-      toast.error(e.message || 'Failed to parse expense');
+      toast.error(friendlyError(e));
     } finally {
       setParsing(false);
     }

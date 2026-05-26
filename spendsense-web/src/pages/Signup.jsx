@@ -13,7 +13,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { toast } from 'sonner';
 
 const schema = z.object({
-  name: z.string().max(100).optional(),
+  name: z.string().trim().min(1, 'Name is required').max(100),
   email: z.string().email('Enter a valid email').max(254),
   password: z.string().min(8, 'Password must be at least 8 characters').max(200),
 });
@@ -38,7 +38,7 @@ export default function Signup() {
       await signup({
         email: data.email.trim().toLowerCase(),
         password: data.password,
-        name: data.name?.trim() || undefined,
+        name: data.name.trim(),
       });
       toast.success('Account created!');
       navigate('/', { replace: true });
@@ -73,7 +73,7 @@ export default function Signup() {
 
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
           <div className="space-y-2">
-            <Label htmlFor="signup-name">Name (optional)</Label>
+            <Label htmlFor="signup-name">Name</Label>
             <Input
               id="signup-name"
               type="text"
@@ -81,6 +81,9 @@ export default function Signup() {
               placeholder="Your name"
               {...register('name')}
             />
+            {errors.name && (
+              <p className="text-xs text-destructive">{errors.name.message}</p>
+            )}
           </div>
 
           <div className="space-y-2">

@@ -9,56 +9,84 @@ export default function BottomNav({ onAdd, onScan, onVoice, onChat }) {
   const { pathname } = useLocation();
   const { hasKey } = useAiKey();
 
-  const tabs = [
-    { icon: Home, label: 'Home', path: '/' },
-    { icon: BarChart3, label: 'Stats', path: '/stats' },
-  ];
-
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 pb-safe">
       <div className="mx-auto max-w-xl px-3 pb-2">
-        <div className="flex items-center justify-between rounded-2xl border border-border/40 bg-card/80 backdrop-blur-xl px-2 py-2 shadow-lg shadow-black/20">
-          <NavTab
-            icon={tabs[0].icon}
-            label={tabs[0].label}
-            active={pathname === tabs[0].path}
-            onClick={() => navigate(tabs[0].path)}
-          />
-
-          <div className="flex items-center gap-0.5">
-            <AiAction icon={Camera} label="Scan" onClick={onScan} disabled={!hasKey} />
-            <AiAction icon={Mic} label="Voice" onClick={onVoice} disabled={!hasKey} />
-
+        <div className="relative rounded-2xl border border-border/40 bg-card/80 backdrop-blur-xl shadow-lg shadow-black/20 pt-1">
+          {/* Elevated center FAB */}
+          <div className="absolute left-1/2 -translate-x-1/2 -top-6 z-10">
             <button
               onClick={onAdd}
-              className="relative mx-1 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-md shadow-primary/25 transition-all duration-200 hover:shadow-lg hover:shadow-primary/30 active:scale-95"
+              className="flex h-[52px] w-[52px] items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-4 ring-card/80 transition-all duration-200 hover:shadow-xl hover:shadow-primary/40 active:scale-95"
               aria-label="Add expense"
             >
-              <Plus className="h-5 w-5" strokeWidth={2.5} />
+              <Plus className="h-6 w-6" strokeWidth={2.5} />
             </button>
-
-            <AiAction icon={MessageCircle} label="Coach" onClick={onChat} disabled={!hasKey} />
           </div>
 
-          <NavTab
-            icon={tabs[1].icon}
-            label={tabs[1].label}
-            active={pathname === tabs[1].path}
-            onClick={() => navigate(tabs[1].path)}
-          />
+          <div className="grid grid-cols-5 items-end pb-2">
+            <NavTab
+              icon={Home}
+              label="Home"
+              active={pathname === '/'}
+              onClick={() => navigate('/')}
+            />
+            <NavTab
+              icon={Camera}
+              label="Scan"
+              onClick={onScan}
+              disabled={!hasKey}
+            />
+
+            {/* Center column: Voice shortcut beneath FAB */}
+            <div className="flex flex-col items-center gap-0.5 pt-4">
+              <button
+                onClick={onVoice}
+                disabled={!hasKey}
+                className={cn(
+                  'flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-medium transition-all',
+                  !hasKey
+                    ? 'opacity-30 cursor-not-allowed'
+                    : 'text-muted-foreground hover:text-primary hover:bg-primary/10 active:scale-95'
+                )}
+                aria-label="Voice entry"
+              >
+                <Mic className="h-3 w-3" />
+                <span>Voice</span>
+              </button>
+            </div>
+
+            <NavTab
+              icon={MessageCircle}
+              label="Coach"
+              onClick={onChat}
+              disabled={!hasKey}
+            />
+            <NavTab
+              icon={BarChart3}
+              label="Stats"
+              active={pathname === '/stats'}
+              onClick={() => navigate('/stats')}
+            />
+          </div>
         </div>
       </div>
     </nav>
   );
 }
 
-function NavTab({ icon: Icon, label, active, onClick }) {
+function NavTab({ icon: Icon, label, active = false, onClick, disabled = false }) {
   return (
     <button
       onClick={onClick}
+      disabled={disabled}
       className={cn(
-        'relative flex flex-col items-center gap-1 rounded-xl px-4 py-2 text-[10px] font-medium transition-colors min-h-[44px] min-w-[52px]',
-        active ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
+        'relative flex flex-col items-center gap-1 py-2 text-[10px] font-medium transition-colors min-h-[44px]',
+        disabled
+          ? 'opacity-30 cursor-not-allowed'
+          : active
+            ? 'text-primary'
+            : 'text-muted-foreground hover:text-foreground active:scale-95'
       )}
       aria-label={label}
     >
@@ -71,26 +99,6 @@ function NavTab({ icon: Icon, label, active, onClick }) {
           transition={{ type: 'spring', stiffness: 400, damping: 30 }}
         />
       )}
-    </button>
-  );
-}
-
-function AiAction({ icon: Icon, label, onClick, disabled }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className={cn(
-        'flex flex-col items-center justify-center rounded-xl px-1.5 py-1.5 min-h-[44px] min-w-[38px] text-[9px] font-medium transition-all',
-        disabled
-          ? 'opacity-25 cursor-not-allowed'
-          : 'text-muted-foreground hover:text-primary hover:bg-secondary/50 active:scale-95'
-      )}
-      aria-label={label}
-    >
-      <Icon className="h-4 w-4" />
-      <span className="mt-0.5">{label}</span>
     </button>
   );
 }

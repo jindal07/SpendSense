@@ -1,4 +1,5 @@
 import { request } from './client';
+import { friendlyError } from '@/utils/friendlyError';
 
 export function fetchAiKey() {
   return request('/api/ai/key');
@@ -72,14 +73,16 @@ export async function streamChat({ message, conversationId, onEvent, signal }) {
     async onopen(response) {
       if (response.ok) return;
       const body = await response.json().catch(() => ({}));
-      const err = new Error(
+      const raw = new Error(
         body.message ||
           (Array.isArray(body.messages) ? body.messages.join(', ') : null) ||
           `Chat failed (${response.status})`
       );
-      err.status = response.status;
-      err.body = body;
-      throw err;
+      raw.status = response.status;
+      raw.body = body;
+      raw.code = body.code;
+      raw.message = friendlyError(raw);
+      throw raw;
     },
     onmessage(ev) {
       if (!ev.data) return;

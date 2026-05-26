@@ -1,3 +1,5 @@
+import { friendlyError } from '@/utils/friendlyError';
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 
 /**
@@ -6,13 +8,22 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001';
 export async function request(path, options = {}) {
   const url = `${BASE_URL}${path}`;
   const isFormData = options.body instanceof FormData;
-  const res = await fetch(url, {
-    credentials: 'include',
-    headers: isFormData
-      ? { ...options.headers }
-      : { 'Content-Type': 'application/json', ...options.headers },
-    ...options,
-  });
+
+  let res;
+  try {
+    res = await fetch(url, {
+      credentials: 'include',
+      headers: isFormData
+        ? { ...options.headers }
+        : { 'Content-Type': 'application/json', ...options.headers },
+      ...options,
+    });
+  } catch (networkErr) {
+    const err = new Error(friendlyError(networkErr));
+    err.status = 0;
+    err.code = 'NETWORK_ERROR';
+    throw err;
+  }
 
   if (
     res.status === 401 &&
@@ -24,15 +35,17 @@ export async function request(path, options = {}) {
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    const message =
+    const raw = new Error(
       body.message ||
       (Array.isArray(body.messages) ? body.messages.join(', ') : null) ||
       body.error ||
-      `Request failed (${res.status})`;
-    const err = new Error(message);
-    err.status = res.status;
-    err.body = body;
-    throw err;
+      `Request failed (${res.status})`
+    );
+    raw.status = res.status;
+    raw.body = body;
+    raw.code = body.code;
+    raw.message = friendlyError(raw);
+    throw raw;
   }
 
   return res.json();

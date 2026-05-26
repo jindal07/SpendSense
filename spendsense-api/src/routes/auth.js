@@ -40,7 +40,7 @@ function clientIp(req) {
 // POST /api/auth/signup
 router.post('/signup', requireSameOrigin, async (req, res, next) => {
   try {
-    const parsed = validateCredentials(req.body);
+    const parsed = validateCredentials(req.body, { requireName: true });
     if (!parsed.ok) {
       return res.status(400).json({
         error: 'Validation Error',
