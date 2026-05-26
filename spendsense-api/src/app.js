@@ -82,6 +82,21 @@ if (process.env.VERCEL !== '1') {
     if (process.env.NODE_ENV === 'production') {
       console.log(`   CORS origins: ${allowedOrigins.join(', ')}`);
       console.log(`   Cross-site cookies: ${usesCrossSiteCookies() ? 'enabled (SameSite=None)' : 'disabled (SameSite=Lax)'}`);
+
+      const pingUrl = process.env.RENDER_EXTERNAL_URL;
+      if (pingUrl) {
+        const PING_INTERVAL_MS = 4 * 60 * 1000; // every 4 minutes
+        setInterval(async () => {
+          try {
+            await fetch(`${pingUrl}/api/health/db`);
+          } catch {
+            // silent — don't log noise for transient ping failures
+          }
+        }, PING_INTERVAL_MS);
+        console.log(`   Keep-alive ping enabled → ${pingUrl}/api/health/db`);
+      } else {
+        console.log('   Keep-alive ping disabled (set RENDER_EXTERNAL_URL to enable)');
+      }
     }
   });
 }
