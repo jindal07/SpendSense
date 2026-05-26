@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS user_ai_keys (
   iv                BYTEA NOT NULL,
   auth_tag          BYTEA NOT NULL,
   key_fingerprint   TEXT NOT NULL,
-  daily_request_cap INT NOT NULL DEFAULT 200,
+  daily_request_cap INT NOT NULL DEFAULT 1000,
   monthly_token_cap BIGINT NOT NULL DEFAULT 5000000,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at        TIMESTAMPTZ NOT NULL DEFAULT now()

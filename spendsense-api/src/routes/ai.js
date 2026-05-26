@@ -2,14 +2,17 @@ import { Router } from 'express';
 import multer from 'multer';
 import dayjs from 'dayjs';
 import {
-  getGeminiForUser,
   validateGeminiKey,
   generateJson,
+  generateVisionJson,
+  invokeGemini,
   AiKeyMissingError,
   invalidateKeyCache,
   withTimeout,
   parseJsonResponse,
+  normalizeGeminiError,
 } from '../lib/gemini.js';
+import { getModelQuotaStatus } from '../lib/geminiQuota.js';
 import { encryptKey, fingerprint } from '../lib/keyVault.js';
 import { getDb } from '../lib/db.js';
 import { getOrSet, cacheHash, purgeExpiredCache } from '../lib/aiCache.js';
@@ -23,6 +26,7 @@ import {
   sanitizeChatMessage,
   escapeForPrompt,
 } from '../lib/promptSafety.js';
+import { logRequestError, logWarn } from '../lib/logger.js';
 
 const router = Router();
 const aiMiddleware = [aiBurstLimit, aiDailyLimit];
@@ -61,11 +65,11 @@ async function getUserCategories(userId) {
   return rows.map((r) => r.name);
 }
 
+/** Feature-level usage log (one row per user action). Gemini API calls also log as feature=gemini_api for quota. */
 async function runAi(userId, feature, model, fn) {
   const start = Date.now();
   try {
-    const ai = await getGeminiForUser(userId);
-    const result = await fn(ai);
+    const result = await fn();
     await logAiUsage({
       userId,
       feature,
@@ -84,7 +88,7 @@ async function runAi(userId, feature, model, fn) {
       status: 'error',
       latencyMs: Date.now() - start,
     }).catch(() => {});
-    throw err;
+    throw normalizeGeminiError(err);
   }
 }
 
@@ -139,12 +143,14 @@ router.get('/key', async (req, res, next) => {
       return res.json({ hasKey: false });
     }
     const usage = await getUsageStats(req.userId);
+    const modelQuotas = await getModelQuotaStatus(req.userId, Object.values(FEATURE_MODEL));
     res.json({
       hasKey: true,
       fingerprint: rows[0].key_fingerprint,
       dailyCap: rows[0].daily_request_cap,
       monthlyTokenCap: Number(rows[0].monthly_token_cap),
       usage,
+      modelQuotas,
     });
   } catch (err) {
     next(err);
@@ -170,10 +176,12 @@ router.get('/usage', async (req, res, next) => {
       WHERE user_id = ${req.userId} LIMIT 1
     `;
     const usage = await getUsageStats(req.userId);
+    const modelQuotas = await getModelQuotaStatus(req.userId, Object.values(FEATURE_MODEL));
     res.json({
       usage,
       dailyCap: caps[0]?.daily_request_cap ?? 200,
       monthlyTokenCap: Number(caps[0]?.monthly_token_cap ?? 5000000),
+      modelQuotas,
     });
   } catch (err) {
     next(err);
@@ -208,9 +216,8 @@ router.post('/suggest-category', ...aiMiddleware, async (req, res, next) => {
     const cacheKey = `cat:${cacheHash([req.userId, note.toLowerCase()])}`;
 
     const { value, fromCache } = await getOrSet(cacheKey, 'suggest-category', 86400, async () => {
-      const { data, inputTokens, outputTokens } = await runAi(
-        req.userId, 'suggest-category', model,
-        async (ai) => generateJson(ai, {
+      const { data } = await runAi(req.userId, 'suggest-category', model, () =>
+        generateJson(req.userId, {
           model,
           prompt: `Pick exactly one category for this expense note: "${escapeForPrompt(note)}".
 Allowed categories: ${cats.join(', ')}.
@@ -260,8 +267,8 @@ router.post('/parse-expense', ...aiMiddleware, async (req, res, next) => {
     const cacheKey = `voice:${cacheHash([req.userId, transcript.toLowerCase()])}`;
 
     const { value, fromCache } = await getOrSet(cacheKey, 'parse-expense', 900, async () => {
-      const { data } = await runAi(req.userId, 'parse-expense', model, async (ai) =>
-        generateJson(ai, {
+      const { data } = await runAi(req.userId, 'parse-expense', model, () =>
+        generateJson(req.userId, {
           model,
           prompt: `Convert spoken expense to JSON. Today: ${today}, timezone Asia/Kolkata, currency INR.
 Categories: ${cats.join(', ')}.
@@ -349,38 +356,17 @@ router.post(
         },
       };
 
-      const { data } = await runAi(req.userId, 'parse-expense-audio', model, async (ai) => {
-        const result = await withTimeout(
-          ai.models.generateContent({
-            model,
-            contents: [
-              {
-                role: 'user',
-                parts: [
-                  {
-                    text: `Transcribe this audio and extract expense as JSON. Today: ${today}, currency INR.
+      const { data } = await runAi(req.userId, 'parse-expense-audio', model, () =>
+        generateVisionJson(req.userId, {
+          model,
+          systemHint: `Transcribe this audio and extract expense as JSON. Today: ${today}, currency INR.
 Allowed categories: ${cats.join(', ')}.
 If category not clear, use "Other". Never invent amounts.`,
-                  },
-                  { inlineData: { mimeType: req.file.mimetype, data: b64 } },
-                ],
-              },
-            ],
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema,
-              maxOutputTokens: 400,
-            },
-          }),
-          30_000
-        );
-        const parsed = parseJsonResponse(result.text);
-        return {
-          data: parsed,
-          inputTokens: result.usageMetadata?.promptTokenCount ?? 0,
-          outputTokens: result.usageMetadata?.candidatesTokenCount ?? 0,
-        };
-      });
+          parts: [{ inlineData: { mimeType: req.file.mimetype, data: b64 } }],
+          schema: responseSchema,
+          maxOutputTokens: 400,
+        })
+      );
 
       res.json({
         ...data,
@@ -436,38 +422,17 @@ router.post(
         },
       };
 
-      const { data } = await runAi(req.userId, 'scan-receipt', model, async (ai) => {
-        const result = await withTimeout(
-          ai.models.generateContent({
-            model,
-            contents: [
-              {
-                role: 'user',
-                parts: [
-                  {
-                    text: `Extract receipt details as JSON. Categories: ${cats.join(', ')}.
+      const { data } = await runAi(req.userId, 'scan-receipt', model, () =>
+        generateVisionJson(req.userId, {
+          model,
+          systemHint: `Extract receipt details as JSON. Categories: ${cats.join(', ')}.
 IMPORTANT: Never include credit card numbers, CVV, or any payment card details in the output.
 If this is not a receipt, set warnings: ["not a receipt"].`,
-                  },
-                  { inlineData: { mimeType: req.file.mimetype, data: b64 } },
-                ],
-              },
-            ],
-            config: {
-              responseMimeType: 'application/json',
-              responseSchema,
-              maxOutputTokens: 800,
-            },
-          }),
-          30_000
-        );
-        const parsed = parseJsonResponse(result.text);
-        return {
-          data: parsed,
-          inputTokens: result.usageMetadata?.promptTokenCount ?? 0,
-          outputTokens: result.usageMetadata?.candidatesTokenCount ?? 0,
-        };
-      });
+          parts: [{ inlineData: { mimeType: req.file.mimetype, data: b64 } }],
+          schema: responseSchema,
+          maxOutputTokens: 800,
+        })
+      );
 
       if (data.warnings?.includes('not a receipt')) {
         return res.status(422).json({
@@ -588,7 +553,6 @@ router.post('/chat', ...aiMiddleware, async (req, res, next) => {
     `;
 
     const model = FEATURE_MODEL.chat;
-    const ai = await getGeminiForUser(req.userId);
     const today = dayjs().format('YYYY-MM-DD');
 
     const displayName = user.name || 'User';
@@ -626,26 +590,28 @@ Rules:
     const toolMemo = new Map();
     let turns = 0;
     let finalText = '';
-    let totalInputTokens = 0;
-    let totalOutputTokens = 0;
     const chatStart = Date.now();
 
     while (turns < MAX_TOOL_TURNS) {
       turns += 1;
-      const response = await withTimeout(
-        ai.models.generateContent({
-          model,
-          contents,
-          config: {
-            tools: [{ functionDeclarations: CHAT_TOOL_DECLARATIONS }],
-          },
-        }),
-        CHAT_TIMEOUT_MS
-      );
-
-      const usage = response.usageMetadata ?? {};
-      totalInputTokens += usage.promptTokenCount ?? 0;
-      totalOutputTokens += usage.candidatesTokenCount ?? 0;
+      const { response } = await invokeGemini(req.userId, { model }, async (ai) => {
+        const result = await withTimeout(
+          ai.models.generateContent({
+            model,
+            contents,
+            config: {
+              tools: [{ functionDeclarations: CHAT_TOOL_DECLARATIONS }],
+            },
+          }),
+          CHAT_TIMEOUT_MS
+        );
+        const usage = result.usageMetadata ?? {};
+        return {
+          response: result,
+          inputTokens: usage.promptTokenCount ?? 0,
+          outputTokens: usage.candidatesTokenCount ?? 0,
+        };
+      });
 
       const calls = response.functionCalls ?? [];
       if (!calls.length) {
@@ -679,25 +645,30 @@ Rules:
     }
 
     if (!finalText) {
-      const stream = await ai.models.generateContentStream({
-        model,
-        contents: [
-          ...contents,
-          { role: 'user', parts: [{ text: 'Summarize findings for the user in clear markdown.' }] },
-        ],
+      await invokeGemini(req.userId, { model }, async (ai) => {
+        const stream = await ai.models.generateContentStream({
+          model,
+          contents: [
+            ...contents,
+            { role: 'user', parts: [{ text: 'Summarize findings for the user in clear markdown.' }] },
+          ],
+        });
+        let inputTokens = 0;
+        let outputTokens = 0;
+        for await (const chunk of stream) {
+          const t = chunk.text ?? '';
+          if (t) {
+            finalText += t;
+            send('chunk', { text: t });
+          }
+          const u = chunk.usageMetadata;
+          if (u) {
+            inputTokens += u.promptTokenCount ?? 0;
+            outputTokens += u.candidatesTokenCount ?? 0;
+          }
+        }
+        return { inputTokens, outputTokens };
       });
-      for await (const chunk of stream) {
-        const t = chunk.text ?? '';
-        if (t) {
-          finalText += t;
-          send('chunk', { text: t });
-        }
-        const u = chunk.usageMetadata;
-        if (u) {
-          totalInputTokens += u.promptTokenCount ?? 0;
-          totalOutputTokens += u.candidatesTokenCount ?? 0;
-        }
-      }
     } else {
       send('chunk', { text: finalText });
     }
@@ -714,8 +685,6 @@ Rules:
       userId: req.userId,
       feature: 'chat',
       model,
-      inputTokens: totalInputTokens,
-      outputTokens: totalOutputTokens,
       status: 'ok',
       latencyMs: Date.now() - chatStart,
     });
@@ -728,15 +697,24 @@ Rules:
         return res.status(412).json({ error: 'Precondition Failed', message: err.message });
       }
     }
-    if (!res.headersSent) next(err);
+    const normalized = normalizeGeminiError(err);
+    if (!res.headersSent) next(normalized);
     else {
-      const errorMsg = err.status === 504 ? 'AI request timed out' : 'AI request failed';
-      res.write(`event: error\ndata: ${JSON.stringify({ message: errorMsg })}\n\n`);
+      logRequestError(req, normalized, normalized.status || 500);
+      res.write(
+        `event: error\ndata: ${JSON.stringify({
+          message: normalized.message || 'AI request failed',
+          code: normalized.code,
+          retryAfter: normalized.retryAfter,
+        })}\n\n`
+      );
       res.end();
     }
   }
 });
 
-purgeExpiredCache().catch(() => {});
+purgeExpiredCache().catch((err) => {
+  logWarn('AI cache purge failed', { message: err.message });
+});
 
 export default router;

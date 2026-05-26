@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Loader2, Square } from 'lucide-react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+import { MessageCircle, X, Send, Loader2, Square, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ReactMarkdown from 'react-markdown';
 import { streamChat } from '@/api/ai';
@@ -8,7 +8,6 @@ import { useAuth } from '@/auth/AuthContext';
 import AiConsentDialog from './AiConsentDialog';
 import AiUnavailable from './AiUnavailable';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
 
 const PROMPTS = [
   'How am I doing this month?',
@@ -33,6 +32,19 @@ export default function ChatPanel({ open, onOpenChange }) {
 
   const needsConsent = hasKey && !user?.aiConsentAt;
 
+  const showChatError = useCallback((errorText) => {
+    setMessages((m) => {
+      const copy = [...m];
+      const last = copy[copy.length - 1];
+      if (last?.role === 'assistant') {
+        copy[copy.length - 1] = { role: 'assistant', text: '', error: errorText };
+      } else {
+        copy.push({ role: 'assistant', text: '', error: errorText });
+      }
+      return copy;
+    });
+  }, []);
+
   const sendMessage = async (text) => {
     const msg = text.trim();
     if (!msg || streaming) return;
@@ -46,8 +58,7 @@ export default function ChatPanel({ open, onOpenChange }) {
     setInput('');
     setStreaming(true);
 
-    const assistant = { role: 'assistant', text: '' };
-    setMessages((m) => [...m, assistant]);
+    setMessages((m) => [...m, { role: 'assistant', text: '' }]);
 
     const controller = new AbortController();
     abortRef.current = controller;
@@ -65,19 +76,34 @@ export default function ChatPanel({ open, onOpenChange }) {
             setMessages((m) => {
               const copy = [...m];
               const last = copy[copy.length - 1];
-              if (last?.role === 'assistant') {
+              if (last?.role === 'assistant' && !last.error) {
                 copy[copy.length - 1] = { ...last, text: last.text + data.text };
               }
               return copy;
             });
           }
           if (event === 'error') {
-            toast.error(data.message || 'Chat failed');
+            let text = data.message || 'Something went wrong. Please try again.';
+            if (data.retryAfter) {
+              text += ` You can retry in about ${data.retryAfter} seconds.`;
+            }
+            showChatError(text);
           }
         },
       });
     } catch (e) {
-      if (e.name !== 'AbortError') toast.error(e.message || 'Chat failed');
+      if (e.name === 'AbortError') {
+        setMessages((m) => {
+          const copy = [...m];
+          const last = copy[copy.length - 1];
+          if (last?.role === 'assistant' && !last.text?.trim() && !last.error) {
+            copy.pop();
+          }
+          return copy;
+        });
+      } else {
+        showChatError(e.message || 'Chat failed. Please try again.');
+      }
     } finally {
       setStreaming(false);
       abortRef.current = null;
@@ -95,7 +121,6 @@ export default function ChatPanel({ open, onOpenChange }) {
       <AnimatePresence>
         {open && (
           <>
-            {/* Mobile overlay */}
             <motion.button
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -107,7 +132,6 @@ export default function ChatPanel({ open, onOpenChange }) {
               onClick={() => onOpenChange(false)}
             />
 
-            {/* Panel */}
             <motion.div
               initial={{ x: '100%', opacity: 0.5 }}
               animate={{ x: 0, opacity: 1 }}
@@ -166,13 +190,22 @@ export default function ChatPanel({ open, onOpenChange }) {
                         'rounded-2xl px-4 py-2.5 text-sm max-w-[88%]',
                         m.role === 'user'
                           ? 'ml-auto bg-primary text-primary-foreground rounded-br-md'
-                          : 'mr-auto bg-secondary/50 prose prose-invert prose-sm max-w-none rounded-bl-md'
+                          : m.error
+                            ? 'mr-auto rounded-bl-md border border-destructive/25 bg-destructive/10 text-destructive-foreground'
+                            : 'mr-auto bg-secondary/50 prose prose-invert prose-sm max-w-none rounded-bl-md'
                       )}
                     >
                       {m.role === 'user' ? (
                         m.text
+                      ) : m.error ? (
+                        <div className="flex gap-2.5 items-start not-prose">
+                          <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-destructive" />
+                          <p className="text-sm leading-relaxed">{m.error}</p>
+                        </div>
                       ) : (
-                        <ReactMarkdown>{m.text || (streaming && i === messages.length - 1 ? '…' : '')}</ReactMarkdown>
+                        <ReactMarkdown>
+                          {m.text || (streaming && i === messages.length - 1 ? '…' : '')}
+                        </ReactMarkdown>
                       )}
                     </motion.div>
                   ))

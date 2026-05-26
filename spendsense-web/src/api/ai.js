@@ -69,6 +69,18 @@ export async function streamChat({ message, conversationId, onEvent, signal }) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message, conversationId }),
     signal,
+    async onopen(response) {
+      if (response.ok) return;
+      const body = await response.json().catch(() => ({}));
+      const err = new Error(
+        body.message ||
+          (Array.isArray(body.messages) ? body.messages.join(', ') : null) ||
+          `Chat failed (${response.status})`
+      );
+      err.status = response.status;
+      err.body = body;
+      throw err;
+    },
     onmessage(ev) {
       if (!ev.data) return;
       try {

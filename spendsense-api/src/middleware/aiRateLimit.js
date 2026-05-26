@@ -1,6 +1,7 @@
 import { getDb } from '../lib/db.js';
 
-const BURST_MAX = 10;
+/** HTTP-level guard; each route may trigger multiple Gemini API calls (see geminiQuota.js). */
+const BURST_MAX = 8;
 const BURST_WINDOW_MS = 60_000;
 const MAX_CONCURRENT = 3;
 
@@ -86,6 +87,8 @@ export async function aiDailyLimit(req, res, next) {
     const todayCalls = dailyUsage[0]?.today_calls ?? 0;
     const monthTokens = Number(monthlyUsage[0]?.month_tokens ?? 0);
 
+    // Per-model daily limits are enforced in geminiQuota.js (per Gemini API call).
+    // Optional app-wide ceiling (set high; flash-lite RPD is the practical cap for most features).
     if (todayCalls >= cap.daily_request_cap) {
       return res.status(429).json({
         error: 'Too Many Requests',

@@ -14,6 +14,7 @@ const ALTERS = [
   `ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_consent_at TIMESTAMPTZ`,
   `ALTER TABLE transactions ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'manual'`,
   `UPDATE transactions SET source = 'manual' WHERE source IS NULL`,
+  `CREATE INDEX IF NOT EXISTS idx_ai_usage_user_model_day ON ai_usage_log (user_id, model, created_at DESC)`,
 ];
 
 async function migrate() {

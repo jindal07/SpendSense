@@ -13,6 +13,16 @@ import { errorHandler } from './middleware/errorHandler.js';
 import { requireAuth, requireSameOrigin } from './middleware/auth.js';
 import { getAllowedOrigins } from './lib/corsOrigins.js';
 import { usesCrossSiteCookies } from './lib/session.js';
+import { logError, logWarn } from './lib/logger.js';
+
+process.on('unhandledRejection', (reason) => {
+  logError('UNHANDLED REJECTION', reason instanceof Error ? reason : new Error(String(reason)));
+});
+
+process.on('uncaughtException', (err) => {
+  logError('UNCAUGHT EXCEPTION', err);
+  process.exit(1);
+});
 
 const app = express();
 
@@ -29,6 +39,7 @@ app.use(
         // Must return the exact origin string when credentials: true
         return cb(null, origin);
       }
+      logWarn('CORS blocked request', { origin });
       return cb(new Error(`Not allowed by CORS: ${origin}`));
     },
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
