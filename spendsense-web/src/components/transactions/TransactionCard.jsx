@@ -52,7 +52,7 @@ function TransactionCard({ transaction, index = 0 }) {
       transition={{ delay, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
         'group flex items-center gap-3.5 rounded-xl p-3.5 transition-all duration-200',
-        'bg-secondary/30 hover:bg-secondary/50',
+        'bg-secondary/50 hover:bg-secondary/70',
         transaction._optimistic && 'opacity-50'
       )}
     >

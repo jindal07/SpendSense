@@ -24,7 +24,7 @@ export default function AiConsentDialog({ open, onOpenChange, onAccepted }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md mx-3 sm:mx-auto">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <div className="flex items-start gap-3.5">
             <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10">

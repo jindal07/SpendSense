@@ -96,13 +96,13 @@ export default function Dashboard() {
 function QuickStat({ icon, label, value }) {
   return (
     <div className="glass-card flex flex-col items-center gap-2 p-4 text-center">
-      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/60">
+      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/80">
         {icon}
       </div>
       {value === null ? (
         <Skeleton className="h-4 w-14" />
       ) : (
-        <p className="text-sm font-semibold truncate w-full">{value}</p>
+        <p className="text-sm font-semibold truncate w-full text-foreground">{value}</p>
       )}
       <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{label}</p>
     </div>

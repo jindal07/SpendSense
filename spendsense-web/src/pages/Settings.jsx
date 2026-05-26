@@ -26,8 +26,11 @@ export default function Settings() {
     queryFn: fetchAiKey,
   });
 
+  // Tie usage cache to the active key fingerprint so it automatically resets/updates
+  // when the user replaces or removes the key.
+  const usageKey = keyData?.hasKey ? (keyData.fingerprint || 'active') : 'none';
   const { data: usage } = useQuery({
-    queryKey: ['ai-usage'],
+    queryKey: ['ai-usage', usageKey],
     queryFn: fetchAiUsage,
     enabled: keyData?.hasKey,
   });

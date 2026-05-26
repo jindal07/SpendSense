@@ -30,7 +30,7 @@ export default function ConfirmDialog({
   return (
     <Dialog open={open} onOpenChange={loading ? undefined : onOpenChange}>
       <DialogContent
-        className="max-w-sm mx-3 sm:mx-auto"
+        className="max-w-sm"
         onPointerDownOutside={(e) => loading && e.preventDefault()}
         onEscapeKeyDown={(e) => loading && e.preventDefault()}
       >

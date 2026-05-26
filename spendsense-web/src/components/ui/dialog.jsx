@@ -28,8 +28,10 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%]',
-        'gap-5 rounded-2xl border border-border/50 bg-card p-6 shadow-2xl shadow-black/30',
+        'fixed z-50 grid w-[calc(100%-2rem)] max-w-lg',
+        'left-[50%] top-[50%] translate-x-[-50%] translate-y-[-50%]',
+        'max-h-[85vh] overflow-y-auto overscroll-contain',
+        'gap-4 rounded-2xl border border-border/60 bg-card p-5 sm:p-6 shadow-2xl shadow-black/30',
         'duration-200',
         'data-[state=open]:animate-in data-[state=closed]:animate-out',
         'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
@@ -41,7 +43,7 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
       {...props}
     >
       {children}
-      <DialogPrimitive.Close className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/60 transition-all hover:bg-secondary hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+      <DialogPrimitive.Close className="absolute right-3 top-3 sm:right-4 sm:top-4 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/60 transition-all hover:bg-secondary hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
         <X className="h-4 w-4" />
         <span className="sr-only">Close</span>
       </DialogPrimitive.Close>
@@ -51,7 +53,7 @@ const DialogContent = React.forwardRef(({ className, children, ...props }, ref) 
 DialogContent.displayName = DialogPrimitive.Content.displayName;
 
 const DialogHeader = ({ className, ...props }) => (
-  <div className={cn('flex flex-col gap-1.5 text-center sm:text-left', className)} {...props} />
+  <div className={cn('flex flex-col gap-1.5 text-left', className)} {...props} />
 );
 DialogHeader.displayName = 'DialogHeader';
 

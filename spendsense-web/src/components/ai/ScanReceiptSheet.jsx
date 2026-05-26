@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, Loader2, Sparkles } from 'lucide-react';
+import { Camera, Loader2, Sparkles, AlertCircle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -30,6 +30,7 @@ export default function ScanReceiptSheet({ open, onOpenChange }) {
   const [preview, setPreview] = useState(null);
   const [form, setForm] = useState(null);
   const [isPdf, setIsPdf] = useState(false);
+  const [scanError, setScanError] = useState(null);
 
   const resetState = () => {
     if (preview) URL.revokeObjectURL(preview);
@@ -37,6 +38,7 @@ export default function ScanReceiptSheet({ open, onOpenChange }) {
     setPreview(null);
     setForm(null);
     setIsPdf(false);
+    setScanError(null);
   };
 
   const handleClose = (v) => {
@@ -48,6 +50,7 @@ export default function ScanReceiptSheet({ open, onOpenChange }) {
     if (!file) return;
     setScanning(true);
     setStep('scan');
+    setScanError(null);
     try {
       const prepared = await prepareReceiptFile(file);
       setIsPdf(file.type === 'application/pdf');
@@ -65,7 +68,9 @@ export default function ScanReceiptSheet({ open, onOpenChange }) {
       });
       setStep('confirm');
     } catch (e) {
-      toast.error(friendlyError(e));
+      const msg = friendlyError(e);
+      setScanError(msg);
+      toast.error(msg);
       setStep('pick');
     } finally {
       setScanning(false);
@@ -86,7 +91,7 @@ export default function ScanReceiptSheet({ open, onOpenChange }) {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-lg mx-3 sm:mx-auto max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Camera className="h-5 w-5" />
@@ -99,6 +104,12 @@ export default function ScanReceiptSheet({ open, onOpenChange }) {
           <AiUnavailable />
         ) : step === 'pick' ? (
           <div className="space-y-4 py-2">
+            {scanError && (
+              <div className="flex items-start gap-2 rounded-xl bg-destructive/10 border border-destructive/20 px-3 py-2.5 text-sm text-destructive">
+                <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                <span>{scanError}</span>
+              </div>
+            )}
             <input
               ref={fileRef}
               type="file"

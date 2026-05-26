@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { formatCurrency } from '@/utils/format';
 
@@ -5,8 +6,8 @@ const CustomTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null;
   const d = payload[0];
   return (
-    <div className="rounded-lg border border-border/50 bg-card px-3 py-2 text-xs shadow-lg">
-      <p className="font-medium">{d.name}</p>
+    <div className="rounded-lg border border-border/60 bg-popover px-3 py-2 text-xs shadow-xl pointer-events-none">
+      <p className="font-semibold text-foreground">{d.name}</p>
       <p className="text-muted-foreground mt-0.5">{formatCurrency(d.value)}</p>
     </div>
   );
@@ -15,6 +16,8 @@ const CustomTooltip = ({ active, payload }) => {
 export default function CategoryPieChart({ data = [], compact = false }) {
   if (!data.length) return null;
 
+  const hasAnimated = useRef(false);
+
   const chartData = data.map((d) => ({
     name: d.category,
     value: Number(d.total),
@@ -22,6 +25,8 @@ export default function CategoryPieChart({ data = [], compact = false }) {
   }));
 
   const size = compact ? 160 : 200;
+  const shouldAnimate = !hasAnimated.current;
+  if (shouldAnimate) hasAnimated.current = true;
 
   return (
     <div className="flex flex-col items-center">
@@ -36,22 +41,27 @@ export default function CategoryPieChart({ data = [], compact = false }) {
             paddingAngle={4}
             dataKey="value"
             stroke="none"
+            isAnimationActive={shouldAnimate}
             animationBegin={0}
             animationDuration={600}
             animationEasing="ease-out"
           >
             {chartData.map((entry, i) => (
-              <Cell key={i} fill={entry.color} opacity={0.9} />
+              <Cell key={i} fill={entry.color} />
             ))}
           </Pie>
-          <Tooltip content={<CustomTooltip />} />
+          <Tooltip
+            content={<CustomTooltip />}
+            allowEscapeViewBox={{ x: true, y: true }}
+            wrapperStyle={{ zIndex: 50 }}
+          />
         </PieChart>
       </ResponsiveContainer>
 
       <div className="mt-3 flex flex-wrap justify-center gap-x-5 gap-y-1.5">
         {chartData.map((d, i) => (
-          <div key={i} className="flex items-center gap-1.5 text-xs text-muted-foreground">
-            <span className="h-2 w-2 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
+          <div key={i} className="flex items-center gap-1.5 text-xs text-foreground/75">
+            <span className="h-2.5 w-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: d.color }} />
             {d.name}
           </div>
         ))}

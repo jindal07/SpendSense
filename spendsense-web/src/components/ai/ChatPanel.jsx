@@ -16,6 +16,16 @@ const PROMPTS = [
   "What's my biggest expense this week?",
 ];
 
+function DotTyping() {
+  return (
+    <div className="flex items-center gap-1 py-1">
+      <span className="inline-flex h-1.5 w-1.5 animate-bounce rounded-full bg-primary/80" />
+      <span className="inline-flex h-1.5 w-1.5 animate-bounce rounded-full bg-primary/80 [animation-delay:120ms]" />
+      <span className="inline-flex h-1.5 w-1.5 animate-bounce rounded-full bg-primary/80 [animation-delay:240ms]" />
+    </div>
+  );
+}
+
 export default function ChatPanel({ open, onOpenChange }) {
   const { hasKey } = useAiKey();
   const { user, refresh } = useAuth();
@@ -209,9 +219,11 @@ export default function ChatPanel({ open, onOpenChange }) {
                           <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5 text-destructive" />
                           <p className="text-sm leading-relaxed">{m.error}</p>
                         </div>
+                      ) : streaming && i === messages.length - 1 && !m.text ? (
+                        <DotTyping />
                       ) : (
                         <ReactMarkdown>
-                          {m.text || (streaming && i === messages.length - 1 ? '…' : '')}
+                          {m.text}
                         </ReactMarkdown>
                       )}
                     </motion.div>

@@ -140,7 +140,7 @@ export default function AddExpenseModal({ open, onOpenChange, prefill }) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md mx-3 sm:mx-auto">
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add Expense</DialogTitle>
           <DialogDescription>Track a new expense entry.</DialogDescription>
