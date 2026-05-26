@@ -53,6 +53,8 @@ export default function Settings() {
       setApiKey('');
       await refetchKey();
       qc.invalidateQueries({ queryKey: ['ai-key'] });
+      // Refresh usage for the new key.
+      qc.invalidateQueries({ queryKey: ['ai-usage'] });
       toast.success(`Key saved (…${r.fingerprint})`);
     } catch (e) {
       toast.error(friendlyError(e));
@@ -64,6 +66,8 @@ export default function Settings() {
   const handleDeleteKey = async () => {
     try {
       await deleteAiKey();
+      // Immediately reset the UI usage section.
+      qc.removeQueries({ queryKey: ['ai-usage'] });
       await refetchKey();
       qc.invalidateQueries({ queryKey: ['ai-key'] });
       toast.success('API key removed');
