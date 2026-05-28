@@ -1,4 +1,3 @@
-import { AnimatePresence } from 'framer-motion';
 import TransactionCard from './TransactionCard';
 import EmptyState from './EmptyState';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,11 +26,9 @@ export default function TransactionList({ transactions, isLoading }) {
 
   return (
     <div className="space-y-2">
-      <AnimatePresence mode="popLayout">
-        {transactions.map((tx, i) => (
-          <TransactionCard key={tx.id} transaction={tx} index={i} />
-        ))}
-      </AnimatePresence>
+      {transactions.map((tx) => (
+        <TransactionCard key={tx.id} transaction={tx} />
+      ))}
     </div>
   );
 }

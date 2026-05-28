@@ -1,9 +1,9 @@
 import { getDb } from '../lib/db.js';
 
 /** HTTP-level guard; each route may trigger multiple Gemini API calls (see geminiQuota.js). */
-const BURST_MAX = 8;
+const BURST_MAX = 40;
 const BURST_WINDOW_MS = 60_000;
-const MAX_CONCURRENT = 3;
+const MAX_CONCURRENT = 10;
 
 const buckets = new Map();
 const activeRequests = new Map();

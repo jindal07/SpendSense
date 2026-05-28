@@ -1,5 +1,4 @@
 import { memo, useState } from 'react';
-import { motion } from 'framer-motion';
 import { Trash2 } from 'lucide-react';
 import { formatCurrency, formatRelativeTime } from '@/utils/format';
 import { useDeleteTransaction } from '@/hooks/useTransactions';
@@ -20,10 +19,7 @@ const CATEGORY_ICONS = {
   Other: '📌',
 };
 
-const MAX_STAGGER_DELAY = 0.3;
-const STAGGER_STEP = 0.04;
-
-function TransactionCard({ transaction, index = 0 }) {
+function TransactionCard({ transaction }) {
   const deleteTx = useDeleteTransaction();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -42,16 +38,11 @@ function TransactionCard({ transaction, index = 0 }) {
   };
 
   const emoji = CATEGORY_ICONS[transaction.category] || '📌';
-  const delay = Math.min(index * STAGGER_STEP, MAX_STAGGER_DELAY);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, x: -40 }}
-      transition={{ delay, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+    <div
       className={cn(
-        'group flex items-center gap-3.5 rounded-xl p-3.5 transition-all duration-200',
+        'group flex items-center gap-3.5 rounded-xl p-3.5 transition-colors duration-150',
         'bg-secondary/50 hover:bg-secondary/70',
         transaction._optimistic && 'opacity-50'
       )}
@@ -80,9 +71,9 @@ function TransactionCard({ transaction, index = 0 }) {
         onClick={openConfirm}
         disabled={deleteTx.isPending || transaction._optimistic}
         className={cn(
-          'flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground/40 transition-all',
-          'opacity-0 group-hover:opacity-100 focus-visible:opacity-100',
-          'hover:bg-destructive/10 hover:text-destructive',
+          'flex-shrink-0 flex h-8 w-8 items-center justify-center rounded-lg transition-colors',
+          'text-muted-foreground/50 sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100',
+          'hover:bg-destructive/10 hover:text-destructive active:text-destructive',
           (deleteTx.isPending || transaction._optimistic) && 'opacity-30'
         )}
         aria-label="Delete expense"
@@ -113,7 +104,7 @@ function TransactionCard({ transaction, index = 0 }) {
         loading={deleteTx.isPending}
         onConfirm={handleConfirmDelete}
       />
-    </motion.div>
+    </div>
   );
 }
 

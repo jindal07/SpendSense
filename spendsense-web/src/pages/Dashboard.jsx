@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { TrendingDown, Wallet, ArrowDownRight, Tag } from 'lucide-react';
 import Header from '@/components/layout/Header';
@@ -11,17 +11,17 @@ import { useStats } from '@/hooks/useStats';
 import { formatCurrency } from '@/utils/format';
 
 const stagger = {
-  hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.06 } },
 };
 const fadeUp = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
 };
 
 export default function Dashboard() {
   const { data: txData, isLoading: txLoading } = useTransactions(5);
   const { data: stats, isLoading: statsLoading } = useStats();
+  const hasAnimated = useRef(false);
 
   const transactions = useMemo(
     () => txData?.pages?.flatMap((p) => p.items) ?? [],
@@ -33,11 +33,14 @@ export default function Dashboard() {
   const avgPerTxn = txCount > 0 ? (stats?.total ?? 0) / txCount : 0;
   const topCategory = stats?.byCategory?.[0]?.category ?? '—';
 
+  const shouldAnimate = !hasAnimated.current;
+  if (!statsLoading && !txLoading) hasAnimated.current = true;
+
   return (
     <>
       <Header title="SpendSense" subtitle="Track your spending" />
       <PageContainer className="space-y-6 pt-6">
-        <motion.div variants={stagger} initial="hidden" animate="show">
+        <motion.div variants={stagger} initial={shouldAnimate ? 'hidden' : false} animate="show">
           {/* Hero spend card */}
           <motion.div variants={fadeUp} className="gradient-card p-6 relative overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-white/[0.08] to-transparent pointer-events-none" />

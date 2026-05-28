@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import Header from '@/components/layout/Header';
 import PageContainer from '@/components/layout/PageContainer';
@@ -10,17 +11,19 @@ import { useStats } from '@/hooks/useStats';
 import { formatCurrency } from '@/utils/format';
 
 const stagger = {
-  hidden: { opacity: 0 },
   show: { opacity: 1, transition: { staggerChildren: 0.08 } },
 };
 const fadeUp = {
   hidden: { opacity: 0, y: 12 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] } },
 };
 
 export default function Stats() {
   const { data: stats, isLoading } = useStats();
   const hasData = stats && stats.total > 0;
+  const hasAnimated = useRef(false);
+  const shouldAnimate = !hasAnimated.current;
+  if (!isLoading) hasAnimated.current = true;
 
   return (
     <>
@@ -38,7 +41,7 @@ export default function Stats() {
             subtitle="Add some expenses to see your analytics here."
           />
         ) : (
-          <motion.div variants={stagger} initial="hidden" animate="show" className="space-y-5">
+          <motion.div variants={stagger} initial={shouldAnimate ? 'hidden' : false} animate="show" className="space-y-5">
             <motion.div variants={fadeUp} className="glass-card p-5">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Total Spending</p>
               <p className="mt-2 text-3xl font-bold tracking-tight text-gradient">

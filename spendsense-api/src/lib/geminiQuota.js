@@ -5,12 +5,11 @@ import { getDb } from './db.js';
  * @see https://ai.google.dev/gemini-api/docs/rate-limits
  */
 export const GEMINI_FREE_TIER = {
-  'gemini-2.5-flash-lite': { rpm: 14, tpm: 240_000, rpd: 950 },
-  'gemini-2.5-flash': { rpm: 14, tpm: 240_000, rpd: 18 },
-  'gemini-2.5-pro': { rpm: 0, tpm: 0, rpd: 0 },
-  // Legacy model IDs (if still referenced)
-  'gemini-2.0-flash-lite': { rpm: 14, tpm: 240_000, rpd: 950 },
-  'gemini-2.0-flash': { rpm: 14, tpm: 240_000, rpd: 18 },
+  'gemini-2.5-flash-lite': { rpm: 60, tpm: 4_000_000, rpd: 14000 },
+  'gemini-2.5-flash':      { rpm: 30, tpm: 4_000_000, rpd: 1500 },
+  'gemini-2.5-pro':        { rpm: 10, tpm: 1_000_000, rpd: 50 },
+  'gemini-2.0-flash-lite': { rpm: 60, tpm: 4_000_000, rpd: 14000 },
+  'gemini-2.0-flash':      { rpm: 30, tpm: 4_000_000, rpd: 1500 },
 };
 
 const WINDOW_MS = 60_000;
